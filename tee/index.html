@@ -11,9 +11,10 @@ filename: echo
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TEE Anatomy Guess — Echo Game</title>
 
-  <!-- Link shared + page-specific CSS -->
-  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/site.css">
-  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/echo.css">
+  <!-- Use your existing shared CSS at repo root -->
+  <link rel="stylesheet" href="../style.css">
+  <!-- Echo-only CSS stored alongside this file -->
+  <link rel="stylesheet" href="./echo.css">
 </head>
 <body class="echo">
   <!-- ===== Header: same horizontal bar with tabs ===== -->
@@ -22,16 +23,16 @@ filename: echo
     <div class="nav-box">
       <div class="nav-row">
         <!-- Logo -->
-        <a class="brand" href="{{ site.baseurl }}/" aria-label="In-Ax — home">
+        <a class="brand" href="../" aria-label="In-Ax — home">
           <img class="logo"
                src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
                alt="In-Ax logo" />
         </a>
         <!-- Tabs -->
         <nav class="tabs" aria-label="Primary">
-          <a class="tab" href="{{ site.baseurl }}/" data-match="/">Home</a>
-          <a class="tab" href="{{ site.baseurl }}/about/" data-match="/about">About</a>
-          <a class="tab" href="{{ site.baseurl }}/contact/" data-match="/contact">Contact</a>
+          <a class="tab" href="../" data-match="/">Home</a>
+          <a class="tab" href="../about/" data-match="/about">About</a>
+          <a class="tab" href="../contact/" data-match="/contact">Contact</a>
         </nav>
         <!-- Subtitle -->
         <div class="subtitle">Pick a module to start learning by playing</div>
@@ -87,20 +88,20 @@ filename: echo
   </footer>
 
   <script>
-    // Mark active tab
+    // Mark active tab (works from subfolders)
     (function(){
-      const base = "{{ site.baseurl }}".replace(/\/+$/,'');
-      const path = location.pathname.replace(base,'') || '/';
+      const path = location.pathname.replace(/\/+$/,'') || '/';
       document.querySelectorAll('.tab').forEach(a=>{
         const match = a.getAttribute('data-match');
-        const isActive = match === '/' ? path === '/' : path.startsWith(match);
+        const isRoot = path === '' || path === '/' || /\/index\.html$/.test(path);
+        const isActive = match === '/' ? isRoot || path.endsWith('/tee') : path.includes(match);
         if(isActive){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
       });
     })();
 
     document.getElementById('y').textContent = new Date().getFullYear();
 
-    // ------------ Data (ensure paths are correct relative to THIS file) ------------
+    // ------------ Data (paths are relative to /tee/index.html) ------------
     const ECHO_QUESTIONS = [
       { image: "../images/4chamber.jpeg",
         label: "Left Ventricle", target: { x: 64, y: 63 },
