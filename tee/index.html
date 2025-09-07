@@ -11,117 +11,38 @@ filename: echo
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TEE Anatomy Guess — Echo Game</title>
 
-  <style>
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:
-        radial-gradient(1200px 800px at 10% -10%, #1a2a55 0%, rgba(26,42,85,0) 60%),
-        radial-gradient(1000px 700px at 100% 0%, #0b1738 0%, rgba(11,23,56,0) 55%),
-        linear-gradient(180deg, #070e1e 0%, #0a1228 100%);
-      color:#e8eefc;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-    }
-
-    .echo-root{max-width:1100px;margin:28px auto 48px;padding:0 18px}
-    .echo-page-title{margin:0 0 4px;text-align:center;letter-spacing:.2px}
-    .echo-subtitle{margin:0 0 22px;text-align:center;color:#9aa8c0}
-
-    :root{
-      --echo-card:#0f172a; --echo-muted:#90a4bf; --echo-accent:#5eead4; --echo-accent2:#93c5fd;
-      --echo-danger:#f87171; --echo-success:#34d399; --echo-text:#e8eefc; --echo-dim:#c2cce0;
-      --echo-btn:#16223a; --echo-btnH:#1d2a48; --echo-ring:#3b82f6;
-    }
-
-    .echo-app{color:var(--echo-text)}
-    .echo-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:6px 0 12px}
-    .echo-title-wrap{display:flex;align-items:baseline;gap:.6rem}
-    .echo-title{font-size:clamp(1.15rem,1rem + 1.6vw,1.8rem);margin:0}
-    .echo-sub{color:var(--echo-muted);font-size:.98rem}
-    .echo-pill{padding:8px 12px;border-radius:999px;background:rgba(23,32,54,.7);border:1px solid rgba(255,255,255,.08);color:var(--echo-dim);font-weight:700}
-
-    .echo-card{
-      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:18px;
-      box-shadow: 0 24px 48px rgba(0,0,0,.35), 0 0 0 1px rgba(94,234,212,.08) inset;
-      overflow:hidden; backdrop-filter: blur(2px);
-    }
-
-    .echo-stage{padding:18px 18px 0;display:flex;justify-content:center}
-
-    .echo-image-wrap{
-      position: relative;
-      width: min(100%, 860px);
-      max-height: 65vh;
-      aspect-ratio: var(--echo-ar, 4 / 3);
-      margin: 0 auto 12px;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #0e1628;
-      border: 1px solid rgba(255,255,255,.06);
-      box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 1px rgba(147,197,253,.06) inset;
-    }
-
-    .echo-image{display:block;width:100%;height:100%;object-fit:contain;background:#000}
-    @media (max-width: 480px){ .echo-image-wrap{ max-height: 48vh; } }
-
-    .echo-topbanner{
-      margin: 12px 18px 0;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.12);
-      color: var(--echo-dim);
-      font-weight: 700;
-    }
-
-    .echo-overlay{position:absolute;inset:0;pointer-events:none}
-    .echo-arrow-label{
-      position:absolute;transform:translate(-50%,-50%);
-      background:rgba(8,18,32,.88);border:1px solid rgba(148,163,184,.35);
-      padding:6px 10px;border-radius:999px;font-weight:700;font-size:.95rem;color:var(--echo-text)
-    }
-
-    .echo-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px 18px 18px}
-    @media (min-width:840px){.echo-answers{grid-template-columns:repeat(4,minmax(0,1fr));}}
-    .echo-btn{
-      appearance:none;border:1px solid rgba(255,255,255,.10);
-      background:linear-gradient(180deg, rgba(30,44,78,.95), rgba(22,34,58,.95));
-      color:var(--echo-text);
-      border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer;
-      transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
-      box-shadow: 0 10px 18px rgba(0,0,0,.25);
-    }
-    .echo-btn:hover{background:var(--echo-btnH);transform:translateY(-1px);border-color:rgba(94,234,212,.35);box-shadow:0 12px 22px rgba(0,0,0,.32)}
-    .echo-btn:focus-visible{outline:2px solid var(--echo-ring);outline-offset:2px}
-    .echo-btn[disabled]{opacity:.55;cursor:not-allowed}
-    .echo-btn.echo-correct{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.55)}
-    .echo-btn.echo-wrong{background:rgba(248,113,113,.16);border-color:rgba(248,113,113,.55)}
-
-    .echo-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 18px;gap:12px}
-    .echo-progress{position:relative;height:10px;flex:1 1 auto;background:rgba(255,255,255,.10);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
-    .echo-bar{position:absolute;inset:0 100% 0 0;background:linear-gradient(90deg,var(--echo-accent),var(--echo-accent2));transition:inset .35s ease}
-    .echo-controls{display:flex;gap:8px}
-    .echo-link{background:transparent;border:1px solid rgba(255,255,255,.18);color:#e6edf9;border-radius:999px;padding:8px 12px;cursor:pointer}
-    .echo-link:hover{background:rgba(255,255,255,.08)}
-
-    .echo-toast{position:fixed;left:50%;top:16px;transform:translateX(-50%) translateY(-12px);opacity:0;background:#0f1a2c;color:#e6edf9;
-      border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;font-weight:700;transition:all .25s ease;z-index:1000}
-    .echo-toast.echo-show{transform:translateX(-50%) translateY(0);opacity:1}
-
-    .echo-svg{position:absolute;inset:0;width:100%;height:100%}
-    .echo-arrow-line{stroke:#60a5fa;stroke-width:4;filter:drop-shadow(0 0 2px rgba(96,165,250,.8))}
-    .echo-arrow-head{fill:#60a5fa}
-    .echo-shake{animation:echo-shake .28s linear 1}
-    @keyframes echo-shake{0%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
-  </style>
+  <!-- Link shared + page-specific CSS -->
+  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/site.css">
+  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/echo.css">
 </head>
-<body>
+<body class="echo">
+  <!-- ===== Header: same horizontal bar with tabs ===== -->
+  <header class="container">
+    <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
+    <div class="nav-box">
+      <div class="nav-row">
+        <!-- Logo -->
+        <a class="brand" href="{{ site.baseurl }}/" aria-label="In-Ax — home">
+          <img class="logo"
+               src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
+               alt="In-Ax logo" />
+        </a>
+        <!-- Tabs -->
+        <nav class="tabs" aria-label="Primary">
+          <a class="tab" href="{{ site.baseurl }}/" data-match="/">Home</a>
+          <a class="tab" href="{{ site.baseurl }}/about/" data-match="/about">About</a>
+          <a class="tab" href="{{ site.baseurl }}/contact/" data-match="/contact">Contact</a>
+        </nav>
+        <!-- Subtitle -->
+        <div class="subtitle">Pick a module to start learning by playing</div>
+      </div>
+    </div>
+  </header>
 
+  <!-- ===== Echo game content ===== -->
   <div class="echo-root">
     <h2 class="echo-page-title">Echocardiography Game</h2>
-    <div class="echo-subtitle">Echo Game Version 0.001</div>
+    <div class="echo-subtitleX">Echo Game Version 0.001</div>
 
     <div class="echo-app">
       <div class="echo-header">
@@ -161,8 +82,25 @@ filename: echo
     <div id="echo-toast" class="echo-toast" role="status" aria-live="polite"></div>
   </div>
 
+  <footer class="container" style="color:#93a1b7; text-align:center; padding:20px 0 28px; font-size:.9rem;">
+    © <span id="y"></span> In-Ax
+  </footer>
+
   <script>
-    // ------------ Data: use RELATIVE paths ------------
+    // Mark active tab
+    (function(){
+      const base = "{{ site.baseurl }}".replace(/\/+$/,'');
+      const path = location.pathname.replace(base,'') || '/';
+      document.querySelectorAll('.tab').forEach(a=>{
+        const match = a.getAttribute('data-match');
+        const isActive = match === '/' ? path === '/' : path.startsWith(match);
+        if(isActive){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
+      });
+    })();
+
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // ------------ Data (ensure paths are correct relative to THIS file) ------------
     const ECHO_QUESTIONS = [
       { image: "../images/4chamber.jpeg",
         label: "Left Ventricle", target: { x: 64, y: 63 },
@@ -207,7 +145,7 @@ filename: echo
         ],
         autoplay: true, start: 1.0, end: 3.0,
         label: "Mid-Esophageal Long Axis View",
-        target: { x: 50, y: 40 }, // give the video an arrow too
+        target: { x: 50, y: 40 },
         choices: ["Mid-Esophageal Long Axis View","Mid-Esophageal Two Chamber View","Mid-Esophageal Four Chamber View","Bicaval View"],
         answer: "Mid-Esophageal Long Axis View", hint: "ME LAX",
         topText: "Name the TEE View:", topColor: "#ef4444" },
@@ -220,10 +158,7 @@ filename: echo
 
     // ------------ State ------------
     let order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
-    // Ensure first question has a target so an arrow shows immediately
-    while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target) {
-      order.push(order.shift());
-    }
+    while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target) { order.push(order.shift()); }
     let idx = 0, score = 0;
 
     const videoEl   = $E("#echo-video");
@@ -288,7 +223,6 @@ filename: echo
       imageEl.onerror = () => { showToast('⚠️ Image failed to load: ' + src); };
       imageEl.src = src; imageEl.alt = alt || 'TEE image'; imageEl.style.display = '';
 
-      // draw immediately if cached
       if (imageEl.complete && imageEl.naturalWidth) {
         setAspectFromMedia(); redrawOverlay();
       }
@@ -327,9 +261,7 @@ filename: echo
 
     function restart(){
       order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
-      while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target) {
-        order.push(order.shift());
-      }
+      while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target) { order.push(order.shift()); }
       idx = 0; score = 0; updateMeta();
       showToast('New game started');
       loadQuestion();
@@ -350,7 +282,6 @@ filename: echo
       else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'TEE image'); }
       else { showToast('⚠️ Question missing media'); }
 
-      // Build answers
       answersEl.innerHTML = '';
       const options = shuffle(q.choices);
       options.forEach(txt => {
@@ -361,13 +292,11 @@ filename: echo
       });
 
       updateMeta();
-      // Safety: ensure arrow draws after layout paint even on cached images
       setTimeout(redrawOverlay, 0);
     }
 
     function disableAnswers(){ answersEl.querySelectorAll('button').forEach(b => b.disabled = true); }
 
-    // Scoring: wrong → no points, auto-advance
     function handleAnswer(btn, isCorrect){
       const q = ECHO_QUESTIONS[order[idx]];
       disableAnswers();
@@ -478,6 +407,5 @@ filename: echo
     // Init
     loadQuestion();
   </script>
-
 </body>
 </html>
