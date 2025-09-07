@@ -93,7 +93,7 @@ filename: echo
       document.querySelectorAll('.tab').forEach(a=>{
         const match = a.getAttribute('data-match');
         const isRoot = path === '' || path === '/' || /\/index\.html$/.test(path);
-        const isActive = match === '/' ? isRoot || path.endsWith('/tee') : path.includes(match);
+        const isActive = match === '/' ? isRoot : path.includes(match);
         if(isActive){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
       });
     })();
