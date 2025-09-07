@@ -7,7 +7,7 @@
   <style>
     :root{
       --bg:#0b1222; --card:#0f172a; --text:#e8eefc; --muted:#93a1b7;
-      --ring:#3b82f6; --accent:#5eead4;
+      --ring:#3b82f6; --accent:#5eead4; --tab:#1b2542; --tabBorder:rgba(255,255,255,.08);
     }
     *{box-sizing:border-box}
     body{
@@ -17,7 +17,7 @@
     }
 
     /* Header + brand */
-    header{padding:24px 18px 8px; text-align:center}
+    header{padding:24px 18px 6px; text-align:center}
     .brand{
       display:inline-flex; align-items:center; justify-content:center; gap:12px;
       text-decoration:none; color:inherit;
@@ -28,9 +28,36 @@
       transition: transform .18s ease, filter .18s ease;
     }
     .brand:hover .logo{ transform: translateY(-1px); filter: drop-shadow(0 8px 22px rgba(0,0,0,.42)); }
-    .subtitle{color:var(--muted); margin-top:8px; font-size:clamp(.95rem,1.4vw,1.05rem)}
+    .subtitle{color:var(--muted); margin-top:10px; font-size:clamp(.95rem,1.4vw,1.05rem)}
 
-    main{width:min(1100px, 92%); margin:22px auto 40px}
+    /* Tabs */
+    nav{margin:18px auto 8px; width:min(1100px,92%);}
+    .tabs{
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--tabBorder); border-radius:14px; padding:6px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.22);
+      overflow:auto; scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{
+      position:relative; display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 16px; border-radius:10px; text-decoration:none; color:var(--text);
+      font-weight:700; letter-spacing:.2px; white-space:nowrap;
+      transition: background .18s ease, color .18s ease, transform .18s ease;
+    }
+    .tab:hover{ background:rgba(255,255,255,.06); transform:translateY(-1px); }
+    .tab:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+
+    /* Active indicator */
+    .tab.active{ color:#0b1222; background:linear-gradient(90deg,var(--accent),#93c5fd); }
+    .tab.active::after{
+      content:""; position:absolute; left:12px; right:12px; bottom:-6px; height:3px;
+      border-radius:999px; background:linear-gradient(90deg,var(--accent),#93c5fd);
+      box-shadow:0 6px 18px rgba(94,234,212,.45);
+    }
+
+    main{width:min(1100px, 92%); margin:18px auto 40px}
 
     .grid{
       display:grid; gap:16px;
@@ -64,20 +91,26 @@
 </head>
 <body>
   <header>
-    <!-- Accessible H1 kept for semantics -->
     <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
 
-    <!-- Image logo (replace src with your file path) -->
+    <!-- Image logo -->
     <a class="brand" href="/" aria-label="In-Ax — home">
-      <!-- Prefer SVG for crisp scaling; fallback PNG/JPG also fine -->
       <img class="logo"
            src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
            alt="In-Ax logo"
            width="600" height="140"
            decoding="async" fetchpriority="high" />
     </a>
-
     <div class="subtitle">Pick a module to start learning by playing</div>
+
+    <!-- Tabs -->
+    <nav aria-label="Primary">
+      <div class="tabs" role="tablist">
+        <a class="tab" role="tab" href="/" data-match="/" aria-selected="false">Home</a>
+        <a class="tab" role="tab" href="/about/" data-match="/about" aria-selected="false">About</a>
+        <a class="tab" role="tab" href="/contact/" data-match="/contact" aria-selected="false">Contact</a>
+      </div>
+    </nav>
   </header>
 
   <main>
@@ -125,6 +158,23 @@
   </main>
 
   <footer>© <span id="y"></span> In-Ax</footer>
-  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+
+  <script>
+    // Year
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Mark active tab based on current path
+    (function(){
+      const path = location.pathname.replace(/\/+$/,'') || '/';
+      document.querySelectorAll('.tab').forEach(a=>{
+        const match = a.getAttribute('data-match');
+        const isActive = match === '/' ? path === '/' : path.startsWith(match);
+        if(isActive){
+          a.classList.add('active');
+          a.setAttribute('aria-selected','true');
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
