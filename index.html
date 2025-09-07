@@ -16,16 +16,19 @@
       background: radial-gradient(1200px 800px at 20% -10%, #14203a 0%, #0b1222 50%) no-repeat, var(--bg);
       min-height:100svh; display:flex; flex-direction:column;
     }
-    .container{width:min(1100px, 92%); margin:0 auto;}
+    .container{width:min(1100px, 95%); margin:0 auto;}
 
-    header{padding:20px 0 8px;}
-    .nav-bar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:20px;
+    header{padding:20px 0;}
+    .nav-box{
+      display:flex; flex-direction:column; align-items:center; gap:10px;
       background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
       border:1px solid var(--tabBorder); border-radius:14px;
-      padding:8px 16px;
+      padding:12px 18px;
       box-shadow: 0 10px 24px rgba(0,0,0,.22);
+    }
+    .nav-top{
+      display:flex; align-items:center; justify-content:space-between;
+      width:100%; gap:20px; flex-wrap:wrap;
     }
     .brand img.logo{
       height:50px; width:auto; display:block;
@@ -40,8 +43,11 @@
     }
     .tab:hover{ background:rgba(255,255,255,.06); transform:translateY(-1px); }
     .tab.active{ color:#0b1222; background:linear-gradient(90deg,var(--accent),#93c5fd); }
-
-    .subtitle{color:var(--muted); text-align:center; margin:14px 0 0; font-size:clamp(.95rem,1.4vw,1.05rem)}
+    .subtitle{
+      color:var(--muted); text-align:center; margin:6px 0 0;
+      font-size:clamp(.95rem,1.4vw,1.05rem);
+      width:100%;
+    }
 
     main{margin:22px auto 40px}
     .grid{
@@ -75,27 +81,26 @@
   <header class="container">
     <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
 
-    <!-- Logo + tabs in same bar -->
-    <div class="nav-bar">
-      <a class="brand" href="/" aria-label="In-Ax — home">
-        <img class="logo"
-             src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
-             alt="In-Ax logo" />
-      </a>
-      <nav class="tabs" aria-label="Primary">
-        <a class="tab" href="/" data-match="/">Home</a>
-        <a class="tab" href="/about/" data-match="/about">About</a>
-        <a class="tab" href="/contact/" data-match="/contact">Contact</a>
-      </nav>
+    <div class="nav-box">
+      <div class="nav-top">
+        <a class="brand" href="/" aria-label="In-Ax — home">
+          <img class="logo"
+               src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
+               alt="In-Ax logo" />
+        </a>
+        <nav class="tabs" aria-label="Primary">
+          <a class="tab" href="/" data-match="/">Home</a>
+          <a class="tab" href="/about/" data-match="/about">About</a>
+          <a class="tab" href="/contact/" data-match="/contact">Contact</a>
+        </nav>
+      </div>
+      <div class="subtitle">Pick a module to start learning by playing</div>
     </div>
-
-    <!-- Subtitle -->
-    <div class="subtitle">Pick a module to start learning by playing</div>
   </header>
 
   <main class="container">
     <div class="grid">
-      <!-- Game 1: TEE -->
+      <!-- Game 1 -->
       <a class="card" href="tee/">
         <img class="thumb" src="https://eyecandoit.github.io/Images/4chamber.jpeg" alt="TEE four-chamber view" />
         <div class="card-body">
@@ -104,8 +109,7 @@
           <span class="pill">Start</span>
         </div>
       </a>
-
-      <!-- Game 2: Anesthesia Technician -->
+      <!-- Game 2 -->
       <a class="card" href="anesthesia-tech/">
         <img class="thumb" src="https://eyecandoit.github.io/in-ax/images/Atech.jpeg" alt="Anesthesia setup" />
         <div class="card-body">
@@ -114,8 +118,7 @@
           <span class="pill">Preview</span>
         </div>
       </a>
-
-      <!-- Game 3: Airway -->
+      <!-- Game 3 -->
       <a class="card" href="airway/">
         <img class="thumb" src="https://eyecandoit.github.io/Images/LVHypertrophy.png" alt="Airway instruments" />
         <div class="card-body">
@@ -124,8 +127,7 @@
           <span class="pill">Preview</span>
         </div>
       </a>
-
-      <!-- Game 4: ICU Lines -->
+      <!-- Game 4 -->
       <a class="card" href="icu-lines/">
         <img class="thumb" src="https://eyecandoit.github.io/Images/LVHypertrophy.png" alt="Lines & monitors" />
         <div class="card-body">
