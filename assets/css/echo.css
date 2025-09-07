@@ -8,8 +8,6 @@ body.echo{
 
 /* Root container */
 .echo-root{max-width:1100px;margin:28px auto 48px;padding:0 18px}
-.echo-page-title{margin:0 0 4px;text-align:center;letter-spacing:.2px}
-.echo-subtitleX{margin:0 0 22px;text-align:center;color:#9aa8c0}
 
 /* Theme vars for the game */
 :root{
