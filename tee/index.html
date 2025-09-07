@@ -12,7 +12,6 @@ filename: echo
   <title>TEE Anatomy Guess — Echo Game</title>
 
   <style>
-    /* ===== Global page background / polish ===== */
     html,body{height:100%}
     body{
       margin:0;
@@ -24,7 +23,6 @@ filename: echo
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
 
-    /* Container & headings */
     .echo-root{max-width:1100px;margin:28px auto 48px;padding:0 18px}
     .echo-page-title{margin:0 0 4px;text-align:center;letter-spacing:.2px}
     .echo-subtitle{margin:0 0 22px;text-align:center;color:#9aa8c0}
@@ -46,16 +44,12 @@ filename: echo
       background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
       border:1px solid rgba(255,255,255,.10);
       border-radius:18px;
-      box-shadow:
-        0 24px 48px rgba(0,0,0,.35),
-        0 0 0 1px rgba(94,234,212,.08) inset;
-      overflow:hidden;
-      backdrop-filter: blur(2px);
+      box-shadow: 0 24px 48px rgba(0,0,0,.35), 0 0 0 1px rgba(94,234,212,.08) inset;
+      overflow:hidden; backdrop-filter: blur(2px);
     }
 
     .echo-stage{padding:18px 18px 0;display:flex;justify-content:center}
 
-    /* Media box with soft glow */
     .echo-image-wrap{
       position: relative;
       width: min(100%, 860px);
@@ -70,7 +64,6 @@ filename: echo
     }
 
     .echo-image{display:block;width:100%;height:100%;object-fit:contain;background:#000}
-
     @media (max-width: 480px){ .echo-image-wrap{ max-height: 48vh; } }
 
     .echo-topbanner{
@@ -103,7 +96,6 @@ filename: echo
     .echo-btn:hover{background:var(--echo-btnH);transform:translateY(-1px);border-color:rgba(94,234,212,.35);box-shadow:0 12px 22px rgba(0,0,0,.32)}
     .echo-btn:focus-visible{outline:2px solid var(--echo-ring);outline-offset:2px}
     .echo-btn[disabled]{opacity:.55;cursor:not-allowed}
-
     .echo-btn.echo-correct{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.55)}
     .echo-btn.echo-wrong{background:rgba(248,113,113,.16);border-color:rgba(248,113,113,.55)}
 
@@ -118,12 +110,9 @@ filename: echo
       border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;font-weight:700;transition:all .25s ease;z-index:1000}
     .echo-toast.echo-show{transform:translateX(-50%) translateY(0);opacity:1}
 
-    /* SVG arrow */
     .echo-svg{position:absolute;inset:0;width:100%;height:100%}
     .echo-arrow-line{stroke:#60a5fa;stroke-width:4;filter:drop-shadow(0 0 2px rgba(96,165,250,.8))}
     .echo-arrow-head{fill:#60a5fa}
-
-    /* Wrong answer shake */
     .echo-shake{animation:echo-shake .28s linear 1}
     @keyframes echo-shake{0%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
   </style>
@@ -173,63 +162,68 @@ filename: echo
   </div>
 
   <script>
-    /* ——— Your data ———
-       (note: GitHub Pages is case-sensitive; paths below use all-lowercase domain)
-    */
+    // ------------ Data: use RELATIVE paths ------------
     const ECHO_QUESTIONS = [
-      { image: "https://eyecandoit.github.io/in-ax/images/4chamber.jpeg",
+      { image: "../images/4chamber.jpeg",
         label: "Left Ventricle", target: { x: 64, y: 63 },
         choices: ["Mitral Valve","Aortic Valve","Left Ventricle","Right Ventricle"],
         answer: "Left Ventricle", hint: "Midesophageal 4-chamber view" },
-      { image: "https://eyecandoit.github.io/in-ax/images/4chamber.jpeg",
+      { image: "../images/4chamber.jpeg",
         label: "Left Atrium", target: { x: 58, y: 35 },
         choices: ["Inferior Vena Cava","Superior Vena Cava","Left Atrium","Aortic Valve"],
         answer: "Left Atrium", hint: "Midesophageal 4-chamber view" },
-      { image: "https://eyecandoit.github.io/in-ax/images/4chamber.jpeg",
+      { image: "../images/4chamber.jpeg",
         label: "Tricuspid Septal Leaflet", target: { x: 47.4, y: 46.2 },
         choices: ["Tricuspid Septal Leaflet","Tricuspid Valve","Left Atrial Appendage","Pulmonary Vein"],
         answer: "Tricuspid Septal Leaflet", hint: "Midesophageal 4-chamber view" },
-      { image: "https://eyecandoit.github.io/in-ax/images/4chamber.jpeg",
+      { image: "../images/4chamber.jpeg",
         label: "Tricuspid Anterior Leaflet", target: { x: 42.8, y: 50.1 },
         choices: ["Septal Leaflet","Tricuspid Anterior Leaflet","Left Atrial Appendage","Pulmonary Vein"],
         answer: "Tricuspid Anterior Leaflet", hint: "Midesophageal 4-chamber view" },
-      { image: "https://eyecandoit.github.io/in-ax/images/ME2chamber.png",
+      { image: "../images/ME2chamber.png",
         label: "Left Ventricle", target: { x: 46, y: 48 },
         choices: ["Left Atrium","Left Ventricle","Mitral Valve Anterior Leaflet","Mitral Valve Posterior Leaflet"],
         answer: "Left Ventricle", hint: "Mid Esophageal 2 Chamber View" },
-      { image: "https://eyecandoit.github.io/in-ax/images/ME2chamber.png",
+      { image: "../images/ME2chamber.png",
         label: "Mitral Valve Posterior Leaflet", target: { x: 43, y: 33 },
         choices: ["Left Ventricle Inferior Wall","Left Ventricle Anterior Wall","Mitral Valve Anterior Leaflet","Mitral Valve Posterior Leaflet"],
         answer: "Mitral Valve Posterior Leaflet", hint: "Mid Esophageal 2 Chamber View" },
-      { image: "https://eyecandoit.github.io/in-ax/images/ME2chamber.png",
+      { image: "../images/ME2chamber.png",
         label: "Mitral Valve Anterior Leaflet", target: { x: 51.2, y: 30.5 },
         choices: ["Left Ventricle Inferior Wall","Left Ventricle Anterior Wall","Mitral Valve Anterior Leaflet","Mitral Valve Posterior Leaflet"],
         answer: "Mitral Valve Anterior Leaflet", hint: "Mid Esophageal 2 Chamber View" },
-      { image: "https://eyecandoit.github.io/in-ax/images/LVHypertrophy.png",
+      { image: "../images/LVHypertrophy.png",
         label: "LV Hypertrophy", target: { x: 51.2, y: 30.5 },
         choices: ["LA Hypertrophy","RV Hypertrophy","LV Hypertrophy","LA Appendage"],
         answer: "LV Hypertrophy", hint: "Short axis view" },
-      { image: "https://eyecandoit.github.io/in-ax/images/LVHypertrophy.png",
+      { image: "../images/LVHypertrophy.png",
         label: "LAD", target: { x: 49.3, y: 25.6 },
         choices: ["LAD","LCx","RCA","LMA"],
-        answer: "LAD", hint: "Short axis view", topText: "Which artery supplies this wall?", topColor: "#ef4444" },
+        answer: "LAD", hint: "Short axis view",
+        topText: "Which artery supplies this wall?", topColor: "#ef4444" },
       { sources: [
-          { src: "https://eyecandoit.github.io/in-ax/images/MELongAxisVid1.mp4", type: "video/mp4" },
-          { src: "https://eyecandoit.github.io/in-ax/images/MELongAxisVid1.MOV", type: "video/quicktime" }
+          { src: "../images/MELongAxisVid1.mp4", type: "video/mp4" },
+          { src: "../images/MELongAxisVid1.MOV", type: "video/quicktime" }
         ],
         autoplay: true, start: 1.0, end: 3.0,
         label: "Mid-Esophageal Long Axis View",
+        target: { x: 50, y: 40 }, // give the video an arrow too
         choices: ["Mid-Esophageal Long Axis View","Mid-Esophageal Two Chamber View","Mid-Esophageal Four Chamber View","Bicaval View"],
-        answer: "Mid-Esophageal Long Axis View", hint: "ME LAX", topText: "Name the TEE View:", topColor: "#ef4444" },
+        answer: "Mid-Esophageal Long Axis View", hint: "ME LAX",
+        topText: "Name the TEE View:", topColor: "#ef4444" },
     ];
 
-    // ——— Helpers ———
+    // ------------ Helpers ------------
     const $E = (sel, el=document) => el.querySelector(sel);
     const shuffle = (arr) => { const a = arr.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a };
     const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
 
-    // ——— State ———
+    // ------------ State ------------
     let order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
+    // Ensure first question has a target so an arrow shows immediately
+    while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target) {
+      order.push(order.shift());
+    }
     let idx = 0, score = 0;
 
     const videoEl   = $E("#echo-video");
@@ -264,18 +258,12 @@ filename: echo
       const natH = isVideo ? videoEl.videoHeight : imageEl.naturalHeight;
       if (!natW || !natH) return { x:0, y:0, w:r.width, h:r.height };
 
-      const mediaAR = natW / natH;
-      const wrapAR  = r.width / r.height;
-
+      const mediaAR = natW / natH, wrapAR = r.width / r.height;
       if (wrapAR > mediaAR) {
-        const h = r.height;
-        const w = h * mediaAR;
-        const x = (r.width - w) / 2;
+        const h = r.height, w = h * mediaAR, x = (r.width - w) / 2;
         return { x, y:0, w, h };
       } else {
-        const w = r.width;
-        const h = w / mediaAR;
-        const y = (r.height - h) / 2;
+        const w = r.width, h = w / mediaAR, y = (r.height - h) / 2;
         return { x:0, y, w, h };
       }
     }
@@ -283,13 +271,9 @@ filename: echo
     function updateBanner(q){
       const text = q && q.topText ? String(q.topText) : '';
       if (text){
-        topBanner.textContent = text;
-        topBanner.hidden = false;
-        topBanner.style.color = q.topColor || "";
+        topBanner.textContent = text; topBanner.hidden = false; topBanner.style.color = q.topColor || "";
       } else {
-        topBanner.textContent = '';
-        topBanner.hidden = true;
-        topBanner.style.color = "";
+        topBanner.textContent = ''; topBanner.hidden = true; topBanner.style.color = "";
       }
     }
 
@@ -299,8 +283,15 @@ filename: echo
       videoEl.removeAttribute('src'); videoEl.removeAttribute('controls'); videoEl.style.display = 'none'; videoEl.ontimeupdate = null;
 
       overlayEl.innerHTML = '';
+
       imageEl.onload = () => { setAspectFromMedia(); redrawOverlay(); };
+      imageEl.onerror = () => { showToast('⚠️ Image failed to load: ' + src); };
       imageEl.src = src; imageEl.alt = alt || 'TEE image'; imageEl.style.display = '';
+
+      // draw immediately if cached
+      if (imageEl.complete && imageEl.naturalWidth) {
+        setAspectFromMedia(); redrawOverlay();
+      }
     }
 
     function showVideo(q){
@@ -323,7 +314,6 @@ filename: echo
         const start = typeof q.start === 'number' ? q.start : (typeof q.time === 'number' ? q.time : 0);
         const end   = typeof q.end   === 'number' ? q.end   : null;
         if (start) videoEl.currentTime = start;
-
         videoEl.ontimeupdate = end ? () => { if (videoEl.currentTime > end) videoEl.currentTime = start || 0; } : null;
 
         const tryPlay = () => videoEl.play().catch(() => { videoEl.setAttribute('controls',''); });
@@ -331,12 +321,15 @@ filename: echo
         redrawOverlay();
       };
 
-      videoEl.onerror = () => console.warn('Video error:', videoEl.error);
+      videoEl.onerror = () => showToast('⚠️ Video failed to load');
       videoEl.style.display = ''; videoEl.load();
     }
 
     function restart(){
       order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
+      while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target) {
+        order.push(order.shift());
+      }
       idx = 0; score = 0; updateMeta();
       showToast('New game started');
       loadQuestion();
@@ -355,7 +348,7 @@ filename: echo
 
       if (q.video || q.sources){ showVideo(q); }
       else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'TEE image'); }
-      else { console.warn('Question missing image/video:', q); }
+      else { showToast('⚠️ Question missing media'); }
 
       // Build answers
       answersEl.innerHTML = '';
@@ -368,14 +361,13 @@ filename: echo
       });
 
       updateMeta();
+      // Safety: ensure arrow draws after layout paint even on cached images
+      setTimeout(redrawOverlay, 0);
     }
 
-    // Disable all answer buttons (prevents double scoring)
-    function disableAnswers(){
-      answersEl.querySelectorAll('button').forEach(b => b.disabled = true);
-    }
+    function disableAnswers(){ answersEl.querySelectorAll('button').forEach(b => b.disabled = true); }
 
-    // ===== Scoring fix: wrong answer auto-moves on, no points =====
+    // Scoring: wrong → no points, auto-advance
     function handleAnswer(btn, isCorrect){
       const q = ECHO_QUESTIONS[order[idx]];
       disableAnswers();
@@ -383,13 +375,13 @@ filename: echo
       if (isCorrect){
         btn.classList.add('echo-correct');
         score += 1; scorePill.textContent = `Score: ${score}`;
-        try { if (q && q.label && q.target) placeLabel(q.label); } catch(e){ console.warn('placeLabel skipped:', e); }
+        try { if (q && q.label && q.target) placeLabel(q.label); } catch(e){}
         setTimeout(nextQuestion, 700);
       } else {
         btn.classList.add('echo-wrong');
         answersEl.classList.add('echo-shake');
         setTimeout(()=> answersEl.classList.remove('echo-shake'), 300);
-        setTimeout(nextQuestion, 800); // advance without changing score
+        setTimeout(nextQuestion, 800);
       }
     }
 
@@ -439,55 +431,52 @@ filename: echo
       showToast._t = setTimeout(()=> toast.classList.remove('echo-show'), 1500);
     }
 
-    // DEV coordinate picker (?dev=1)
-    const DEV = new URLSearchParams(location.search).has('dev');
-    if (DEV) {
-      const controls = $E('.echo-controls');
-      const devBtn = document.createElement('button');
-      devBtn.id = 'echo-devBtn';
-      devBtn.className = 'echo-link';
-      devBtn.textContent = 'Pick coords (D)';
-      controls.appendChild(devBtn);
+    function redrawOverlay(){
+      const q = ECHO_QUESTIONS[order[idx]];
+      overlayEl.innerHTML = '';
+      if(!q || !q.target) return;
 
-      let devMode = false;
-      function toggleDevMode(){
-        devMode = !devMode;
-        devBtn.textContent = devMode ? 'Picking… (D to exit)' : 'Pick coords (D)';
-        showToast(devMode ? 'Click the media to capture % coords' : 'Picker off');
-        if (devMode && videoEl && videoEl.style.display !== 'none'){
-          try { videoEl.pause(); } catch {}
-        }
-      }
-      devBtn.addEventListener('click', toggleDevMode);
-      window.addEventListener('keydown', e => { if (e.key.toLowerCase() === 'd') toggleDevMode(); });
+      const r   = wrapEl.getBoundingClientRect();
+      const box = getMediaBox();
+      const x2  = box.x + box.w * (q.target.x/100);
+      const y2  = box.y + box.h * (q.target.y/100);
 
-      const wrapElLocal = $E("#echo-imageWrap");
-      wrapElLocal.addEventListener('click', (e) => {
-        if (!devMode) return;
-        const r = wrapElLocal.getBoundingClientRect();
-        const box = getMediaBox();
-        const px = e.clientX - r.left;
-        const py = e.clientY - r.top;
-        const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
-        const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
+      const x1 = clamp(x2 - 140, 20, r.width  - 20);
+      const y1 = clamp(y2 - 100, 20, r.height - 20);
 
-        const dot = document.createElement('div');
-        dot.style.cssText =
-          `position:absolute;left:${px}px;top:${py}px;width:12px;height:12px;border-radius:999px;`+
-          `background:#5eead4;box-shadow:0 0 12px rgba(94,234,212,.8);transform:translate(-50%,-50%);pointer-events:none`;
-        overlayEl.appendChild(dot);
-        setTimeout(() => dot.remove(), 900);
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('class','echo-svg');
 
-        const x = Math.round(xPct * 10) / 10;
-        const y = Math.round(yPct * 10) / 10;
-        const snippet = `target: { x: ${x}, y: ${y} }`;
-        navigator.clipboard?.writeText(snippet).catch(()=>{});
-        showToast(`Copied: ${snippet}`);
-      });
+      const defs = document.createElementNS(svgNS, 'defs');
+      const marker = document.createElementNS(svgNS, 'marker');
+      marker.setAttribute('id','echo-arrowhead');
+      marker.setAttribute('markerWidth','10');
+      marker.setAttribute('markerHeight','10');
+      marker.setAttribute('refX','6');
+      marker.setAttribute('refY','3');
+      marker.setAttribute('orient','auto');
+      const head = document.createElementNS(svgNS,'polygon');
+      head.setAttribute('points','0 0, 6 3, 0 6');
+      head.setAttribute('class','echo-arrow-head');
+      marker.appendChild(head); defs.appendChild(marker); svg.appendChild(defs);
+
+      const line = document.createElementNS(svgNS,'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('class','echo-arrow-line');
+      line.setAttribute('marker-end','url(#echo-arrowhead)');
+      svg.appendChild(line);
+      overlayEl.appendChild(svg);
+
+      const dot = document.createElement('div');
+      dot.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:999px;background:rgba(255,255,255,.85);box-shadow:0 0 10px rgba(255,255,255,.7);transform:translate(-50%,-50%);';
+      dot.style.left = x2+'px'; dot.style.top = y2+'px';
+      overlayEl.appendChild(dot);
     }
 
     // Init
-    restart();
+    loadQuestion();
   </script>
 
 </body>
