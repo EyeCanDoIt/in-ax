@@ -7,38 +7,49 @@
   <style>
     :root{
       --bg:#0b1222; --card:#0f172a; --text:#e8eefc; --muted:#93a1b7;
-      --ring:#3b82f6; --accent:#5eead4; --tabBorder:rgba(255,255,255,.08);
+      --ring:#3b82f6; --accent:#5eead4; --tabBorder:rgba(255,255,255,.10);
     }
     *{box-sizing:border-box}
     body{
       margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      color:var(--text); background: radial-gradient(1200px 800px at 20% -10%, #14203a 0%, #0b1222 50%) no-repeat, var(--bg);
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% -10%, #14203a 0%, #0b1222 50%) no-repeat, var(--bg);
       min-height:100svh; display:flex; flex-direction:column;
     }
+    /* Page container widths */
+    .container{width:min(1100px, 92%); margin:0 auto;}
 
-    header{padding:24px 18px 6px; text-align:center}
-    .brand{display:inline-flex; align-items:center; justify-content:center; gap:12px;}
-    .logo{display:block; height:clamp(40px, 7vw, 84px); width:auto;}
-    .subtitle{color:var(--muted); margin-top:10px; font-size:clamp(.95rem,1.4vw,1.05rem)}
-
-    /* Sidebar nav */
-    nav.sidebar{
-      position:fixed; top:0; left:0; bottom:0;
-      width:180px; background:rgba(255,255,255,.03); border-right:1px solid var(--tabBorder);
-      padding:80px 12px 20px; display:flex; flex-direction:column; gap:12px;
-      backdrop-filter: blur(6px);
+    /* Header */
+    header{padding:20px 0 8px;}
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
     }
+    .brand{display:inline-flex; align-items:center; text-decoration:none; color:inherit}
+    .logo{height:56px; width:auto; display:block; filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
+    /* Tabs */
+    nav{margin:14px 0 6px;}
+    .tabs{
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--tabBorder); border-radius:14px; padding:6px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.22);
+      overflow:auto; scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{display:none}
     .tab{
-      display:block; padding:12px 14px; border-radius:10px;
-      text-decoration:none; font-weight:700; color:var(--text);
-      transition: background .18s ease, color .18s ease;
+      position:relative; display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 16px; border-radius:10px; text-decoration:none; color:var(--text);
+      font-weight:700; letter-spacing:.2px; white-space:nowrap;
+      transition: background .18s ease, color .18s ease, transform .18s ease;
     }
-    .tab:hover{ background:rgba(255,255,255,.08); }
-    .tab.active{ background:linear-gradient(90deg,var(--accent),#93c5fd); color:#0b1222; }
+    .tab:hover{ background:rgba(255,255,255,.06); transform:translateY(-1px); }
+    .tab:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+    .tab.active{ color:#0b1222; background:linear-gradient(90deg,var(--accent),#93c5fd); }
 
-    /* Main content shifts right to make space for sidebar */
-    main{width:min(1100px, 92%); margin:22px auto 40px; margin-left:200px;}
+    .subtitle{color:var(--muted); text-align:center; margin:10px 0 0; font-size:clamp(.95rem,1.4vw,1.05rem)}
 
+    /* Main + cards */
+    main{margin:22px auto 40px}  /* container sets width */
     .grid{
       display:grid; gap:16px;
       grid-template-columns: repeat(auto-fill, minmax(230px,1fr));
@@ -51,14 +62,19 @@
       transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
     .card:hover{ transform: translateY(-2px); border-color: rgba(94,234,212,.35); box-shadow: 0 18px 36px rgba(0,0,0,.34); }
-    .thumb{ aspect-ratio: 4/3; width:100%; object-fit: cover; display:block; background:#0e1628; }
+    .thumb{
+      aspect-ratio: 4/3; width:100%; object-fit: cover; display:block; background:#0e1628;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
     .card-body{ padding:12px 14px 16px; }
     .title{ font-weight:800; margin:2px 0 4px; }
     .desc{ color:var(--muted); margin:0; font-size:.95rem; }
     .pill{ display:inline-block; margin-top:8px; font-size:.85rem; color:#0b1222;
       background:linear-gradient(90deg,var(--accent),#93c5fd); padding:6px 10px; border-radius:999px; font-weight:700; }
-    footer{ color:var(--muted); text-align:center; padding:20px 0 28px; font-size:.9rem; margin-left:200px; }
 
+    footer{ color:var(--muted); text-align:center; padding:20px 0 28px; font-size:.9rem; }
+
+    /* Accessible H1 (kept for SEO/semantics) */
     .sr-only{
       position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
       clip:rect(0,0,0,0); white-space:nowrap; border:0;
@@ -67,25 +83,39 @@
 </head>
 <body>
   <header>
-    <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
-    <a class="brand" href="/" aria-label="In-Ax — home">
-      <img class="logo"
-           src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
-           alt="In-Ax logo" />
-    </a>
-    <div class="subtitle">Pick a module to start learning by playing</div>
+    <div class="container">
+      <!-- Invisible semantic heading -->
+      <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
+
+      <!-- Top row: logo on the left -->
+      <div class="topbar">
+        <a class="brand" href="/" aria-label="In-Ax — home">
+          <img class="logo"
+               src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
+               alt="In-Ax logo" decoding="async" fetchpriority="high" />
+        </a>
+        <!-- optional spacer / future right-side buttons -->
+        <div></div>
+      </div>
+
+      <!-- Tabs (horizontal) -->
+      <nav aria-label="Primary">
+        <div class="tabs" role="tablist">
+          <a class="tab" role="tab" href="/" data-match="/">Home</a>
+          <a class="tab" role="tab" href="/about/" data-match="/about">About</a>
+          <a class="tab" role="tab" href="/contact/" data-match="/contact">Contact</a>
+        </div>
+      </nav>
+
+      <!-- Subtitle below tabs -->
+      <div class="subtitle">Pick a module to start learning by playing</div>
+    </div>
   </header>
 
-  <!-- Sidebar navigation -->
-  <nav class="sidebar" aria-label="Primary">
-    <a class="tab" href="/" data-match="/">Home</a>
-    <a class="tab" href="/about/" data-match="/about">About</a>
-    <a class="tab" href="/contact/" data-match="/contact">Contact</a>
-  </nav>
-
-  <main>
+  <main class="container">
     <div class="grid">
-      <!-- Example cards -->
+
+      <!-- Game 1: TEE -->
       <a class="card" href="tee/">
         <img class="thumb" src="https://eyecandoit.github.io/Images/4chamber.jpeg" alt="TEE four-chamber view" />
         <div class="card-body">
@@ -94,6 +124,8 @@
           <span class="pill">Start</span>
         </div>
       </a>
+
+      <!-- Game 2: Anesthesia Technician -->
       <a class="card" href="anesthesia-tech/">
         <img class="thumb" src="https://eyecandoit.github.io/in-ax/images/Atech.jpeg" alt="Anesthesia setup" />
         <div class="card-body">
@@ -102,27 +134,10 @@
           <span class="pill">Preview</span>
         </div>
       </a>
+
+      <!-- Game 3: Airway -->
       <a class="card" href="airway/">
         <img class="thumb" src="https://eyecandoit.github.io/Images/LVHypertrophy.png" alt="Airway instruments" />
         <div class="card-body">
           <div class="title">Airway ID</div>
-          <p class="desc">Name the device, pick sizes, plan backup strategies.</p>
-          <span class="pill">Preview</span>
-        </div>
-      </a>
-    </div>
-  </main>
-
-  <footer>© <span id="y"></span> In-Ax</footer>
-
-  <script>
-    document.getElementById('y').textContent = new Date().getFullYear();
-    const path = location.pathname.replace(/\/+$/,'') || '/';
-    document.querySelectorAll('.tab').forEach(a=>{
-      const match = a.getAttribute('data-match');
-      const isActive = match === '/' ? path === '/' : path.startsWith(match);
-      if(isActive) a.classList.add('active');
-    });
-  </script>
-</body>
-</html>
+          <p class="desc">Name the device, pick sizes, plan backup strat
