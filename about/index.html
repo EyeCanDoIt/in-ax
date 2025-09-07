@@ -1,1 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>About — In-Ax</title>
+
+  <!-- Shared site-wide CSS -->
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <!-- ===== Header ===== -->
+  <header class="container">
+    <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
+    <div class="nav-box">
+      <div class="nav-row">
+        <!-- Logo -->
+        <a class="brand" href="../" aria-label="In-Ax — home">
+          <img class="logo"
+               src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
+               alt="In-Ax logo" />
+        </a>
+        <!-- Tabs -->
+        <nav class="tabs" aria-label="Primary">
+          <a class="tab" href="../" data-match="/">Home</a>
+          <a class="tab" href="../about/" data-match="/about">About</a>
+          <a class="tab" href="../contact/" data-match="/contact">Contact</a>
+        </nav>
+        <!-- Subtitle -->
+        <div class="subtitle">Pick a module to start learning by playing</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Main content ===== -->
+  <main class="container" style="max-width:800px; margin-top:32px; text-align:center;">
+    <h2 style="font-size:1.8rem; margin-bottom:16px;">Our Vision</h2>
+    <p style="color:#93a1b7; font-size:1.05rem; line-height:1.6;">
+      In-Ax was created to make complex concepts in echocardiography, anesthesia,
+      and critical care easier to understand through interactive, visual learning.
+      Our goal is to transform study time into play — using short, focused games
+      that reinforce anatomy, physiology, and clinical decision-making.
+    </p>
+
+    <p style="color:#93a1b7; font-size:1.05rem; line-height:1.6; margin-top:18px;">
+      Whether you are preparing for exams, working in the OR or ICU, or just
+      curious about the heart and airway, In-Ax helps bridge the gap between
+      memorization and real-world practice.
+    </p>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer>© <span id="y"></span> In-Ax</footer>
+
+  <script>
+    // Year
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Mark active tab
+    (function(){
+      const path = location.pathname.replace(/\/+$/,'') || '/';
+      document.querySelectorAll('.tab').forEach(a=>{
+        const match = a.getAttribute('data-match');
+        const isRoot = path === '' || path === '/' || /\/index\.html$/.test(path);
+        const isActive = (match === '/') ? isRoot : path.includes(match);
+        if(isActive){
+          a.classList.add('active');
+          a.setAttribute('aria-selected','true');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
 
