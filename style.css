@@ -103,3 +103,32 @@ footer{ color:var(--muted); text-align:center; padding:20px 0 28px; font-size:.9
   margin-left: 8px;              /* space from "Contact" */
 }
 
+/* Normalize nav link styles (kills purple + underline) */
+.site-nav a,
+.site-nav a:link,
+.site-nav a:visited,
+.site-nav a:hover,
+.site-nav a:active,
+.site-nav a:focus {
+  color: #cfe0ff !important;
+  text-decoration: none !important;
+}
+
+/* Chip styling for “Read Disclaimer” */
+.nav-disclaimer {
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  font-size: .82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+/* Hover state (optional) */
+.nav-disclaimer:hover {
+  color: #ffffff !important;
+  border-color: rgba(147,197,253,.45);
+  opacity: .95;
+}
+
