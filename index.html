@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Echo & Anesthesia Games</title>
 
-  <!-- Link the external CSS (must exist at /style.css in your repo root) -->
+  <!-- Shared CSS at repo root -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -15,7 +15,7 @@
     <div class="nav-box">
       <div class="nav-row">
         <!-- Logo (left) -->
-        <a class="brand" href="/" aria-label="In-Ax — home">
+        <a class="brand" href="./" aria-label="In-Ax — home">
           <img class="logo"
                src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
                alt="In-Ax logo" />
@@ -23,9 +23,9 @@
 
         <!-- Tabs (center) -->
         <nav class="tabs" aria-label="Primary">
-          <a class="tab" href="/" data-match="/">Home</a>
-          <a class="tab" href="/about/" data-match="/about">About</a>
-          <a class="tab" href="/contact/" data-match="/contact">Contact</a>
+          <a class="tab" href="./" data-match="/">Home</a>
+          <a class="tab" href="about/" data-match="/about">About</a>
+          <a class="tab" href="contact/" data-match="/contact">Contact</a>
         </nav>
 
         <!-- Subtitle (right on wide screens; wraps below on small screens) -->
@@ -84,12 +84,13 @@
     // Year
     document.getElementById('y').textContent = new Date().getFullYear();
 
-    // Mark active tab based on current path
+    // Mark active tab based on current path (works for root & project pages)
     (function(){
       const path = location.pathname.replace(/\/+$/,'') || '/';
       document.querySelectorAll('.tab').forEach(a=>{
         const match = a.getAttribute('data-match');
-        const isActive = match === '/' ? path === '/' : path.startsWith(match);
+        const isRoot = path === '' || path === '/' || /\/index\.html$/.test(path);
+        const isActive = match === '/' ? isRoot : path.includes(match);
         if(isActive){
           a.classList.add('active');
           a.setAttribute('aria-selected','true');
