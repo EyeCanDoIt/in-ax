@@ -132,3 +132,20 @@ footer{ color:var(--muted); text-align:center; padding:20px 0 28px; font-size:.9
   opacity: .95;
 }
 
+/* Force the Disclaimer nav link to be red + no underline in all states */
+a.nav-disclaimer,
+a.nav-disclaimer:link,
+a.nav-disclaimer:visited,
+a.nav-disclaimer:hover,
+a.nav-disclaimer:active,
+a.nav-disclaimer:focus {
+  color: #ef4444 !important;          /* red */
+  text-decoration: none !important;    /* no underline */
+}
+
+/* Optional hover tweak */
+a.nav-disclaimer:hover {
+  opacity: 0.95;
+  border-color: rgba(239, 68, 68, 0.45);  /* if you use the chip style */
+}
+
