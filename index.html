@@ -15,9 +15,21 @@
       color:var(--text); background: radial-gradient(1200px 800px at 20% -10%, #14203a 0%, #0b1222 50%) no-repeat, var(--bg);
       min-height:100svh; display:flex; flex-direction:column;
     }
-    header{padding:28px 18px 10px; text-align:center}
-    h1{margin:0 0 6px; font-size:clamp(1.4rem,2.5vw,2rem)}
-    .subtitle{color:var(--muted)}
+
+    /* Header + brand */
+    header{padding:24px 18px 8px; text-align:center}
+    .brand{
+      display:inline-flex; align-items:center; justify-content:center; gap:12px;
+      text-decoration:none; color:inherit;
+    }
+    .logo{
+      display:block; height:clamp(40px, 7vw, 84px); width:auto;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,.35));
+      transition: transform .18s ease, filter .18s ease;
+    }
+    .brand:hover .logo{ transform: translateY(-1px); filter: drop-shadow(0 8px 22px rgba(0,0,0,.42)); }
+    .subtitle{color:var(--muted); margin-top:8px; font-size:clamp(.95rem,1.4vw,1.05rem)}
+
     main{width:min(1100px, 92%); margin:22px auto 40px}
 
     .grid{
@@ -42,17 +54,34 @@
     .pill{ display:inline-block; margin-top:8px; font-size:.85rem; color:#0b1222;
       background:linear-gradient(90deg,var(--accent),#93c5fd); padding:6px 10px; border-radius:999px; font-weight:700; }
     footer{ color:var(--muted); text-align:center; padding:20px 0 28px; font-size:.9rem; }
+
+    /* Visually hidden H1 for accessibility/SEO */
+    .sr-only{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+      clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>In-Ax - This Picture - For Visual Learners</h1>
+    <!-- Accessible H1 kept for semantics -->
+    <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
+
+    <!-- Image logo (replace src with your file path) -->
+    <a class="brand" href="/" aria-label="In-Ax — home">
+      <!-- Prefer SVG for crisp scaling; fallback PNG/JPG also fine -->
+      <img class="logo"
+           src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png"
+           alt="In-Ax logo"
+           width="600" height="140"
+           decoding="async" fetchpriority="high" />
+    </a>
+
     <div class="subtitle">Pick a module to start learning by playing</div>
   </header>
 
   <main>
     <div class="grid">
-
       <!-- Game 1: TEE -->
       <a class="card" href="tee/">
         <img class="thumb" src="https://eyecandoit.github.io/Images/4chamber.jpeg" alt="TEE four-chamber view" />
@@ -92,11 +121,10 @@
           <span class="pill">Preview</span>
         </div>
       </a>
-
     </div>
   </main>
 
-  <footer>© <span id="y"></span> In-Ax </footer>
+  <footer>© <span id="y"></span> In-Ax</footer>
   <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
 </body>
 </html>
