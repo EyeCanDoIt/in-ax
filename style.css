@@ -149,3 +149,45 @@ a.nav-disclaimer:hover {
   border-color: rgba(239, 68, 68, 0.45);  /* if you use the chip style */
 }
 
+/* Stronger feedback on correct / wrong */
+.echo-image-wrap.is-correct {
+  border-color: rgba(34,197,94,.7);
+  box-shadow: 0 0 0 2px rgba(34,197,94,.35) inset, 0 0 28px rgba(34,197,94,.35);
+}
+.echo-image-wrap.is-wrong {
+  border-color: rgba(248,113,113,.75);
+  box-shadow: 0 0 0 2px rgba(248,113,113,.35) inset, 0 0 28px rgba(248,113,113,.35);
+}
+
+/* Flash overlay */
+.echo-flash {
+  position:absolute; inset:0; pointer-events:none; opacity:0;
+  transition:opacity .22s ease;
+  background: radial-gradient(120% 120% at 50% 50%, var(--echo-flash, rgba(255,255,255,.25)) 0%, transparent 60%);
+}
+.echo-flash.show { opacity:1; }
+
+/* Big center ✔ / ✖ */
+.echo-signal {
+  position:absolute; inset:0; display:grid; place-items:center;
+  pointer-events:none; opacity:0; transform:scale(.9);
+  transition:opacity .22s ease, transform .22s ease;
+  font-size: clamp(56px, 8vw, 96px); font-weight:900;
+  text-shadow: 0 6px 24px rgba(0,0,0,.45);
+}
+.echo-signal.show { opacity:1; transform:scale(1); }
+.echo-signal.ok  { color:#34d399; }   /* green */
+.echo-signal.no  { color:#f87171; }   /* red */
+
+/* Emphasize the correct button when user picks wrong */
+.echo-btn.pulse { animation: echo-pulse .6s ease 1; }
+@keyframes echo-pulse {
+  0%{ transform:scale(1) }
+  40%{ transform:scale(1.06) }
+  100%{ transform:scale(1) }
+}
+
+/* Make wrong/correct buttons pop stronger */
+.echo-btn.echo-correct { background:rgba(52,211,153,.22); border-color:rgba(52,211,153,.7); }
+.echo-btn.echo-wrong   { background:rgba(248,113,113,.22); border-color:rgba(248,113,113,.7); }
+
