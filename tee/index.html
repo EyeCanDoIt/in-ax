@@ -66,6 +66,10 @@ filename: echo
             <video id="echo-video" class="echo-image" playsinline muted preload="metadata" style="display:none"></video>
             <img id="echo-image" class="echo-image" src="" alt="TEE question image" />
             <div id="echo-overlay" class="echo-overlay"></div>
+
+            <div id="echo-flash" class="echo-flash" aria-hidden="true"></div>
+            <div id="echo-signal" class="echo-signal" aria-hidden="true"></div>
+
           </div>
         </div>
 
@@ -175,6 +179,9 @@ filename: echo
     const restartBtn= $E("#echo-restartBtn");
     const wrapEl    = $E("#echo-imageWrap");
     const topBanner = $E("#echo-topBanner");
+    const flash   = $E("#echo-flash");
+    const signal  = $E("#echo-signal");
+
 
     skipBtn.addEventListener('click', nextQuestion);
     restartBtn.addEventListener('click', restart);
@@ -278,6 +285,9 @@ filename: echo
 
     function loadQuestion(){
       const q = ECHO_QUESTIONS[order[idx]];
+wrapEl.classList.remove('is-correct','is-wrong');
+flash.classList.remove('show');
+signal.classList.remove('show');
       updateBanner(q);
 
       if (q.video || q.sources){ showVideo(q); }
@@ -299,22 +309,69 @@ filename: echo
 
     function disableAnswers(){ answersEl.querySelectorAll('button').forEach(b => b.disabled = true); }
 
-    function handleAnswer(btn, isCorrect){
-      const q = ECHO_QUESTIONS[order[idx]];
-      disableAnswers();
+function showBanner(msg, color){
+  if (!topBanner) return;
+  topBanner.textContent = msg || '';
+  topBanner.hidden = !msg;
+  topBanner.style.color = color || '';
+}
 
-      if (isCorrect){
-        btn.classList.add('echo-correct');
-        score += 1; scorePill.textContent = `Score: ${score}`;
-        try { if (q && q.label && q.target) placeLabel(q.label); } catch(e){}
-        setTimeout(nextQuestion, 700);
-      } else {
-        btn.classList.add('echo-wrong');
-        answersEl.classList.add('echo-shake');
-        setTimeout(()=> answersEl.classList.remove('echo-shake'), 300);
-        setTimeout(nextQuestion, 800);
-      }
-    }
+function flashFeedback(type /* 'correct' | 'wrong' */){
+  // wrapper glow + flash color
+  wrapEl.classList.remove('is-correct','is-wrong');
+  const ok = type === 'correct';
+  wrapEl.classList.add(ok ? 'is-correct' : 'is-wrong');
+
+  // flash tint
+  flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)' : 'rgba(248,113,113,.28)');
+  flash.classList.add('show');
+
+  // big ✔ / ✖ symbol
+  signal.textContent = ok ? '✔' : '✖';
+  signal.classList.remove('ok','no');
+  signal.classList.add(ok ? 'ok' : 'no', 'show');
+
+  // optional haptic
+  try { navigator.vibrate?.(ok ? 35 : [25, 60, 25]); } catch {}
+
+  // fade out
+  setTimeout(()=> {
+    flash.classList.remove('show');
+    signal.classList.remove('show');
+  }, 620);
+}
+
+function highlightCorrectButton(answerText){
+  const btns = Array.from(answersEl.querySelectorAll('button'));
+  const b = btns.find(x => x.textContent.trim() === String(answerText).trim());
+  if (b){
+    b.classList.add('echo-correct','pulse');
+  }
+}
+
+    
+function handleAnswer(btn, isCorrect){
+  const q = ECHO_QUESTIONS[order[idx]];
+  disableAnswers();
+
+  if (isCorrect){
+    btn.classList.add('echo-correct');
+    score += 1; scorePill.textContent = `Score: ${score}`;
+    showBanner('✅ Correct', '#34d399');
+    flashFeedback('correct');
+    try { if (q && q.label && q.target) placeLabel(q.label); } catch(e){}
+    setTimeout(()=>{ showBanner(''); nextQuestion(); }, 900);
+  } else {
+    btn.classList.add('echo-wrong');
+    answersEl.classList.add('echo-shake');
+    showBanner(`❌ Incorrect — Correct: ${q.answer}`, '#f87171');
+    flashFeedback('wrong');
+    highlightCorrectButton(q.answer);
+    setTimeout(()=> answersEl.classList.remove('echo-shake'), 320);
+    setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1100);
+  }
+}
+
 
     function placeLabel(text){
       if (!overlayEl) return;
