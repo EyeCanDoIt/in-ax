@@ -480,6 +480,65 @@ function handleAnswer(btn, isCorrect){
       overlayEl.appendChild(dot);
     }
 
+// ── DEV coordinate picker (?dev=1) ──
+const DEV = new URLSearchParams(location.search).has('dev');
+if (DEV) {
+  // add a button in the footer controls
+  const controls = $E('.echo-controls');
+  const devBtn = document.createElement('button');
+  devBtn.id = 'echo-devBtn';
+  devBtn.className = 'echo-link';
+  devBtn.textContent = 'Pick coords (D)';
+  controls.appendChild(devBtn);
+
+  let devMode = false;
+  function toggleDevMode(){
+    devMode = !devMode;
+    devBtn.textContent = devMode ? 'Picking… (D to exit)' : 'Pick coords (D)';
+    showToast(devMode ? 'Tap the image/video to copy % coords' : 'Picker off');
+    if (devMode && videoEl && videoEl.style.display !== 'none'){
+      try { videoEl.pause(); } catch {}
+    }
+  }
+
+  devBtn.addEventListener('click', toggleDevMode);
+  window.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'd') toggleDevMode();
+  });
+
+  // click inside the media wrapper to capture coordinates
+  wrapEl.addEventListener('click', (e) => {
+    if (!devMode) return;
+    const r = wrapEl.getBoundingClientRect();
+    const box = getMediaBox(); // uses the drawn media box (accounts for letterboxing)
+
+    const px = e.clientX - r.left;
+    const py = e.clientY - r.top;
+
+    // convert to % relative to the actual image/video area
+    const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
+    const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
+
+    const x = Math.round(xPct * 10) / 10;
+    const y = Math.round(yPct * 10) / 10;
+    const snippet = `target: { x: ${x}, y: ${y} }`;
+
+    // visual blip
+    const dot = document.createElement('div');
+    dot.style.cssText =
+      `position:absolute;left:${px}px;top:${py}px;width:12px;height:12px;border-radius:999px;`+
+      `background:#5eead4;box-shadow:0 0 12px rgba(94,234,212,.8);`+
+      `transform:translate(-50%,-50%);pointer-events:none`;
+    overlayEl.appendChild(dot);
+    setTimeout(()=>dot.remove(), 900);
+
+    // copy to clipboard + toast
+    navigator.clipboard?.writeText(snippet).catch(()=>{});
+    showToast(`Copied: ${snippet}`);
+  });
+}
+
+    
     // Init
     loadQuestion();
   </script>
