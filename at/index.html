@@ -16,6 +16,50 @@ filename: at
 
   <!-- Reuse the Echo game CSS (it styles the game shell/components) -->
   <link rel="stylesheet" href="../assets/css/echo.css">
+
+  <!-- Minimal CSS just for the APL interactive question -->
+  <style>
+    /* ===== APL interactive question ===== */
+    .apl-wrap{
+      display:grid; gap:10px; padding:12px 14px 16px; color:#e6edf9;
+    }
+    .apl-prompt{ font-weight:800; font-size:1.05rem; }
+    .apl-status{ color:#93a1b7; font-size:.95rem; }
+
+    .apl-board{
+      display:grid;
+      grid-template-columns: 1fr auto;     /* image | controls+readout */
+      align-items:center; gap:14px;
+    }
+    .apl-photo{
+      width:100%; max-width:560px;
+      border-radius:12px; border:1px solid rgba(255,255,255,.08);
+      background:#0e1628; display:block;
+    }
+    .apl-readout{
+      font-weight:900; font-size: clamp(24px, 5vw, 42px);
+      letter-spacing:.5px; text-align:center; margin-bottom:8px;
+    }
+    .apl-controls{ display:flex; gap:10px; justify-content:center; }
+    .apl-arrow{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(180deg, rgba(30,44,78,.95), rgba(22,34,58,.95));
+      color:#e8eefc; border-radius:12px; padding:12px 14px;
+      font-weight:800; font-size:22px; cursor:pointer;
+      transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+      box-shadow: 0 10px 18px rgba(0,0,0,.25);
+      width:56px; height:56px; line-height:1;
+    }
+    .apl-arrow:hover{ background:#1d2a48; transform:translateY(-1px); border-color:rgba(94,234,212,.35) }
+    .apl-arrow:focus-visible{ outline:2px solid var(--ring); outline-offset:2px }
+    .apl-arrow[disabled]{ opacity:.55; cursor:not-allowed }
+
+    @media (max-width: 760px){
+      .apl-board{ grid-template-columns: 1fr; }
+      .apl-readout{ margin-top:6px; }
+    }
+  </style>
 </head>
 <body class="echo">
   <!-- ===== Header: same horizontal bar with tabs ===== -->
@@ -110,8 +154,8 @@ filename: at
 
     document.getElementById('y').textContent = new Date().getFullYear();
 
-    // ------------ Data (use your own images later; placeholders now) ------------
-    // Tip: when you add your images, place them at /images/at/... and change the "image:" URLs
+    // ------------ Data ------------
+    // Tip: when you add your own images, place them at /images/at/... and update the "image:" paths
     const ECHO_QUESTIONS = [
       { image: "../images/ett.JPG",
         label: "Pilot Balloon", target: { x: 40, y: 71.7 },
@@ -126,11 +170,18 @@ filename: at
         answer: "Vaporizer Dial",
         hint: "Agent concentration setting" },
 
-      { image: "https://placehold.co/800x600?text=Bag+%26+APL",
-        label: "APL Valve", target: { x: 72, y: 66 },
-        choices: ["APL Valve","SCV Tube","Flow Sensor","O2 Flush"],
-        answer: "APL Valve",
-        hint: "Adjusts pressure in manual/spontaneous mode" },
+      /* === Interactive APL valve question (dial) === */
+      {
+        type: "dial",
+        image: "../images/apl-valve.png",           // <- add this image to /images
+        prompt: "Close the APL valve: which way should you turn?",
+        dial: {
+          min: 0, max: 70, start: 10, step: 5,      // cmH₂O scale (example)
+          unit: "cmH₂O",
+          increaseArrow: "right"                    // "right" increases, "left" decreases
+        },
+        answer: "Turn to increase pressure (close)"
+      },
 
       { image: "https://placehold.co/800x600?text=CO2+Detector",
         label: "Colorimetric CO₂ Detector", target: { x: 48, y: 50 },
@@ -320,13 +371,20 @@ filename: at
       else { showToast('⚠️ Question missing media'); }
 
       answersEl.innerHTML = '';
-      const options = shuffle(q.choices);
-      options.forEach(txt => {
-        const btn = document.createElement('button');
-        btn.className = 'echo-btn'; btn.type = 'button'; btn.textContent = txt;
-        btn.addEventListener('click', () => handleAnswer(btn, txt === q.answer));
-        answersEl.appendChild(btn);
-      });
+
+      // === Branch for special interactive question types ===
+      if (q.type === 'dial') {
+        renderAplDial(q);
+      } else {
+        // default multiple-choice
+        const options = shuffle(q.choices);
+        options.forEach(txt => {
+          const btn = document.createElement('button');
+          btn.className = 'echo-btn'; btn.type = 'button'; btn.textContent = txt;
+          btn.addEventListener('click', () => handleAnswer(btn, txt === q.answer));
+          answersEl.appendChild(btn);
+        });
+      }
 
       updateMeta();
       setTimeout(redrawOverlay, 0);
@@ -365,21 +423,22 @@ filename: at
       if (b){ b.classList.add('echo-correct','pulse'); }
     }
 
+    // SAFE: btn can be null (for interactive questions)
     function handleAnswer(btn, isCorrect){
       const q = ECHO_QUESTIONS[order[idx]];
       disableAnswers();
 
       if (isCorrect){
-        btn.classList.add('echo-correct');
+        if (btn) btn.classList.add('echo-correct');
         score += 1; scorePill.textContent = `Score: ${score}`;
         showBanner('✅ Correct', '#34d399');
         flashFeedback('correct');
         try { if (q && q.label && q.target) placeLabel(q.label); } catch(e){}
         setTimeout(()=>{ showBanner(''); nextQuestion(); }, 900);
       } else {
-        btn.classList.add('echo-wrong');
+        if (btn) btn.classList.add('echo-wrong');
         answersEl.classList.add('echo-shake');
-        showBanner(`❌ Incorrect — Correct: ${q.answer}`, '#f87171');
+        showBanner(`❌ Incorrect${q.answer ? ' — Correct: ' + q.answer : ''}`, '#f87171');
         flashFeedback('wrong');
         highlightCorrectButton(q.answer);
         setTimeout(()=> answersEl.classList.remove('echo-shake'), 320);
@@ -475,6 +534,91 @@ filename: at
       dot.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:999px;background:rgba(255,255,255,.85);box-shadow:0 0 10px rgba(255,255,255,.7);transform:translate(-50%,-50%);';
       dot.style.left = x2+'px'; dot.style.top = y2+'px';
       overlayEl.appendChild(dot);
+    }
+
+    // === APL "dial" renderer ===
+    function renderAplDial(q){
+      const wrap = document.createElement('div');
+      wrap.className = 'apl-wrap';
+
+      const prompt = document.createElement('div');
+      prompt.className = 'apl-prompt';
+      prompt.textContent = q.prompt || 'Close the APL valve: which way should you turn?';
+      wrap.appendChild(prompt);
+
+      const status = document.createElement('div');
+      status.className = 'apl-status';
+      wrap.appendChild(status);
+
+      const controls = document.createElement('div');
+      controls.className = 'apl-controls';
+
+      const leftBtn  = document.createElement('button');
+      leftBtn.className = 'apl-arrow left';
+      leftBtn.type = 'button';
+      leftBtn.title = 'Rotate counterclockwise';
+      leftBtn.setAttribute('aria-label','Rotate counterclockwise');
+      leftBtn.textContent = '↺';
+
+      const rightBtn = document.createElement('button');
+      rightBtn.className = 'apl-arrow right';
+      rightBtn.type = 'button';
+      rightBtn.title = 'Rotate clockwise';
+      rightBtn.setAttribute('aria-label','Rotate clockwise');
+      rightBtn.textContent = '↻';
+
+      controls.appendChild(leftBtn);
+      controls.appendChild(rightBtn);
+
+      const readout = document.createElement('div');
+      readout.className = 'apl-readout';
+
+      const board = document.createElement('div');
+      board.className = 'apl-board';
+
+      const img = document.createElement('img');
+      img.className = 'apl-photo';
+      img.alt = 'APL valve';
+      img.src = q.image || '../images/apl-valve.png';
+
+      board.appendChild(img);
+      board.appendChild(readout);
+      board.appendChild(controls);
+
+      wrap.appendChild(board);
+      answersEl.appendChild(wrap);
+
+      // Dial state
+      const d = Object.assign({min:0,max:70,start:10,step:5,unit:'cmH₂O',increaseArrow:'right'}, q.dial || {});
+      let value = d.start;
+
+      function clampv(n){ return Math.max(d.min, Math.min(d.max, n)); }
+      function paint(){
+        readout.textContent = `${value} ${d.unit}`;
+        status.textContent  = `Target: increase pressure to close`;
+      }
+      paint();
+
+      function firstClick(which){
+        disableAnswers();  // prevent double-scoring
+        const before = value;
+        if (which === 'left')  value = clampv(value - d.step);
+        if (which === 'right') value = clampv(value + d.step);
+        paint();
+
+        const increased = value > before;
+        const pickedIncrease = (which === d.increaseArrow);
+        const isCorrect = increased && pickedIncrease;
+
+        // grade using shared flow (no btn)
+        handleAnswer(null, isCorrect);
+
+        leftBtn.disabled = true;
+        rightBtn.disabled = true;
+      }
+
+      leftBtn.addEventListener('click',  () => firstClick('left'));
+      rightBtn.addEventListener('click', () => firstClick('right'));
     }
 
     // ── DEV coordinate picker (?dev=1) ──
