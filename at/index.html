@@ -17,31 +17,32 @@ filename: at
   <!-- Reuse the Echo game CSS (it styles the game shell/components) -->
   <link rel="stylesheet" href="../assets/css/echo.css">
 
-  <!-- Page-local CSS just for the APL overlay controls -->
+  <!-- Page-local CSS for the APL interactive controls -->
   <style>
-    /* Overlay buttons INSIDE the image */
-    .echo-inset-controls{
+    /* Big curved arrows that sit just outside the image edges */
+    .apl-edge-btn{
       position:absolute;
-      left:50%; bottom:12px;
-      transform:translateX(-50%);
-      display:flex; gap:10px;
-      z-index:5; pointer-events:auto;
+      top:50%;
+      transform:translateY(-50%);
+      background:none;               /* no box */
+      border:none;                   /* no border */
+      padding:6px 8px;               /* hit area */
+      font-size:clamp(42px, 8vw, 80px);
+      line-height:1;
+      color:#e8eefc;
+      cursor:pointer;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,.55));
+      transition: transform .15s ease, opacity .15s ease, color .15s ease;
+      z-index:6;                     /* above the image */
+      user-select:none;
     }
-    .echo-inset-btn{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.14);
-      background:linear-gradient(180deg, rgba(30,44,78,.95), rgba(22,34,58,.95));
-      color:#e8eefc; border-radius:12px; padding:0;
-      width:56px; height:56px; line-height:56px;
-      font-weight:900; font-size:22px; cursor:pointer;
-      transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
-      box-shadow: 0 10px 18px rgba(0,0,0,.25);
-    }
-    .echo-inset-btn:hover{ background:#1d2a48; transform:translateY(-1px); border-color:rgba(94,234,212,.35) }
-    .echo-inset-btn:focus-visible{ outline:2px solid var(--ring); outline-offset:2px }
-    .echo-inset-btn[disabled]{ opacity:.55; cursor:not-allowed }
+    .apl-edge-btn.left{  left:-16px; }  /* slightly outside the image */
+    .apl-edge-btn.right{ right:-16px; }
 
-    /* A small readout badge in the top-left of the image */
+    .apl-edge-btn:hover{ transform:translateY(-50%) scale(1.06); color:#fff; }
+    .apl-edge-btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+    /* Small readout badge in the image */
     .apl-badge{
       position:absolute; left:12px; top:12px; z-index:5;
       padding:8px 12px; border-radius:10px;
@@ -49,13 +50,10 @@ filename: at
       font-weight:900; font-size:clamp(16px, 2.6vw, 20px); color:#e8eefc;
     }
     .apl-badge small{ font-weight:700; opacity:.9 }
-    @media (max-width:520px){
-      .echo-inset-btn{ width:48px; height:48px; line-height:48px; font-size:20px; }
-    }
   </style>
 </head>
 <body class="echo">
-  <!-- ===== Header ===== -->
+  <!-- ===== Header: same horizontal bar with tabs ===== -->
   <header class="container">
     <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
     <div class="nav-box">
@@ -99,7 +97,7 @@ filename: at
       </div>
 
       <section class="echo-card">
-        <!-- Top banner (now used to show the APL question text above the image) -->
+        <!-- Top banner used for hints/correct/wrong messages -->
         <div id="echo-topBanner" class="echo-topbanner" hidden></div>
 
         <div class="echo-stage">
@@ -144,11 +142,22 @@ filename: at
         if(isActive){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
       });
     })();
+
     document.getElementById('y').textContent = new Date().getFullYear();
 
     // ------------ Data ------------
-    // Put your photos in /images (e.g., /images/apl-valve.png)
+    // Place your images in /images/at/... (or update the paths below)
     const ECHO_QUESTIONS = [
+      /* ── INTERACTIVE: APL valve close direction ── */
+      { image: "../images/apl-valve.png",  /* replace with your file */
+        apl: { start: 10, step: 5, min: 0, max: 70, correct: "cw" }, // 'cw' closes valve
+        label: "APL Valve",
+        hint: "Target: increase pressure to close",
+        topText: "Close the APL valve: which way should you turn?",
+        topColor: "#ef4444"
+      },
+
+      /* ── Regular multiple-choice items (examples / placeholders) ── */
       { image: "../images/ett.JPG",
         label: "Pilot Balloon", target: { x: 40, y: 71.7 },
         choices: ["Bulb","Pilot Balloon","O2 holder","Bellow"],
@@ -156,24 +165,29 @@ filename: at
         hint: "Pilot Balloon",
         topText: "Name this", topColor: "#ef4444" },
 
-      /* ===== Interactive APL question (overlay arrows in the image) ===== */
-      { image: "../images/apl-valve.png",
-        kind: "apl",                // <-- custom renderer
-        topText: "Close the APL valve: which way should you turn?",
-        hint: "Target: increase pressure to close",
-        apl: {
-          start: 10,               // cmH2O starting value (display only)
-          step: 5,                 // how much the number jumps
-          min: 0, max: 70,
-          correct: "cw"            // "cw" = clockwise is correct (change to "ccw" if your machine closes counter-clockwise)
-        }
-      },
-
-      { image: "../images/at/vaporizer.jpg",
+      { image: "https://placehold.co/800x600?text=Vaporizer",
         label: "Vaporizer Dial", target: { x: 56, y: 38 },
         choices: ["Vaporizer Dial","O2 Flush","Y-piece","Soda Lime Canister"],
         answer: "Vaporizer Dial",
         hint: "Agent concentration setting" },
+
+      { image: "https://placehold.co/800x600?text=CO2+Detector",
+        label: "Colorimetric CO₂ Detector", target: { x: 48, y: 50 },
+        choices: ["Colorimetric CO₂ Detector","Peep Valve","Heat Moisture Exchanger","HME-Filter"],
+        answer: "Colorimetric CO₂ Detector",
+        hint: "Purple→Yellow indicates CO₂ presence" },
+
+      { image: "https://placehold.co/800x600?text=Circle+System",
+        label: "Soda Lime Canister", target: { x: 60, y: 42 },
+        choices: ["Bacterial Filter","Soda Lime Canister","Fresh Gas Inlet","Expiratory Valve"],
+        answer: "Soda Lime Canister",
+        hint: "CO₂ absorbent stack" },
+
+      { image: "https://placehold.co/800x600?text=Laryngoscope",
+        label: "Macintosh Blade", target: { x: 42, y: 48 },
+        choices: ["Miller Blade","Macintosh Blade","Stylet","Bougie"],
+        answer: "Macintosh Blade",
+        hint: "Curved blade" },
 
       { sources: [
           { src: "https://eyecandoit.github.io/in-ax/images/MELongAxisVid1.mp4", type: "video/mp4" },
@@ -194,9 +208,7 @@ filename: at
 
     // ------------ State ------------
     let order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
-    while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target && ECHO_QUESTIONS[order[0]]?.kind!=='apl') {
-      order.push(order.shift());
-    }
+    while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target && !ECHO_QUESTIONS[order[0]].apl) { order.push(order.shift()); }
     let idx = 0, score = 0;
 
     const videoEl   = $E("#echo-video");
@@ -243,24 +255,12 @@ filename: at
       }
     }
 
-    function showBanner(msg, color){
-      if (!topBanner) return;
-      topBanner.textContent = msg || '';
-      topBanner.hidden = !msg;
-      topBanner.style.color = color || '';
-    }
-
     function updateBanner(q){
-      const parts = [q?.topText, q?.hint ? `\n${q.hint}` : ''].filter(Boolean);
-      const text = parts.join('\n');
+      const text = q && q.topText ? String(q.topText) : '';
       if (text){
-        topBanner.textContent = text;
-        topBanner.hidden = false;
-        topBanner.style.color = q.topColor || "";
+        topBanner.textContent = text; topBanner.hidden = false; topBanner.style.color = q.topColor || "";
       } else {
-        topBanner.textContent = '';
-        topBanner.hidden = true;
-        topBanner.style.color = "";
+        topBanner.textContent = ''; topBanner.hidden = true; topBanner.style.color = "";
       }
     }
 
@@ -270,18 +270,20 @@ filename: at
       videoEl.removeAttribute('src'); videoEl.removeAttribute('controls'); videoEl.style.display = 'none'; videoEl.ontimeupdate = null;
 
       overlayEl.innerHTML = '';
+      // also remove any APL leftovers
+      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge').forEach(el => el.remove());
+
       imageEl.onload = () => { setAspectFromMedia(); redrawOverlay(); };
       imageEl.onerror = () => { showToast('⚠️ Image failed to load: ' + src); };
-      imageEl.src = src; imageEl.alt = alt || 'Image'; imageEl.style.display = '';
+      imageEl.src = src; imageEl.alt = alt || 'Anesthesia tech image'; imageEl.style.display = '';
 
-      if (imageEl.complete && imageEl.naturalWidth) {
-        setAspectFromMedia(); redrawOverlay();
-      }
+      if (imageEl.complete && imageEl.naturalWidth) { setAspectFromMedia(); redrawOverlay(); }
     }
 
     function showVideo(q){
       imageEl.style.display = 'none';
       overlayEl.innerHTML = '';
+      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge').forEach(el => el.remove());
       try { videoEl.pause(); } catch {}
       while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
       videoEl.removeAttribute('src'); videoEl.removeAttribute('controls'); videoEl.ontimeupdate = null;
@@ -312,9 +314,7 @@ filename: at
 
     function restart(){
       order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
-      while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target && ECHO_QUESTIONS[order[0]]?.kind!=='apl') {
-        order.push(order.shift());
-      }
+      while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target && !ECHO_QUESTIONS[order[0]].apl) { order.push(order.shift()); }
       idx = 0; score = 0; updateMeta();
       showToast('New game started');
       loadQuestion();
@@ -329,19 +329,25 @@ filename: at
 
     function loadQuestion(){
       const q = ECHO_QUESTIONS[order[idx]];
+      // reset visual feedback
       wrapEl.classList.remove('is-correct','is-wrong');
       flash.classList.remove('show');
       signal.classList.remove('show');
 
+      // clear any arrows/badges from previous APL question
+      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge').forEach(el => el.remove());
+
       updateBanner(q);
 
       if (q.video || q.sources){ showVideo(q); }
-      else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'Image'); }
+      else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'Anesthesia tech image'); }
       else { showToast('⚠️ Question missing media'); }
 
-      // Build answers (skip if interactive APL)
+      // Build answers unless this is the APL interactive (no buttons)
       answersEl.innerHTML = '';
-      if (q.kind !== 'apl') {
+      if (q.apl){
+        renderAPL(q);               // draw arrows & badge next to image
+      } else if (Array.isArray(q.choices)) {
         const options = shuffle(q.choices);
         options.forEach(txt => {
           const btn = document.createElement('button');
@@ -349,8 +355,6 @@ filename: at
           btn.addEventListener('click', () => handleAnswer(btn, txt === q.answer));
           answersEl.appendChild(btn);
         });
-      } else {
-        renderAPL(q);   // ← overlay controls inside the image
       }
 
       updateMeta();
@@ -359,10 +363,16 @@ filename: at
 
     function disableAnswers(){
       answersEl.querySelectorAll('button').forEach(b => b.disabled = true);
-      overlayEl.querySelectorAll('button').forEach(b => b.disabled = true);
     }
 
-    function flashFeedback(type){
+    function showBanner(msg, color){
+      if (!topBanner) return;
+      topBanner.textContent = msg || '';
+      topBanner.hidden = !msg;
+      topBanner.style.color = color || '';
+    }
+
+    function flashFeedback(type /* 'correct' | 'wrong' */){
       wrapEl.classList.remove('is-correct','is-wrong');
       const ok = type === 'correct';
       wrapEl.classList.add(ok ? 'is-correct' : 'is-wrong');
@@ -378,84 +388,32 @@ filename: at
       setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); }, 620);
     }
 
+    function highlightCorrectButton(answerText){
+      const btns = Array.from(answersEl.querySelectorAll('button'));
+      const b = btns.find(x => x.textContent.trim() === String(answerText).trim());
+      if (b){ b.classList.add('echo-correct','pulse'); }
+    }
+
     function handleAnswer(btn, isCorrect){
       const q = ECHO_QUESTIONS[order[idx]];
       disableAnswers();
 
       if (isCorrect){
-        if (btn) btn.classList.add('echo-correct');
+        btn.classList.add('echo-correct');
         score += 1; scorePill.textContent = `Score: ${score}`;
         showBanner('✅ Correct', '#34d399');
         flashFeedback('correct');
         try { if (q && q.label && q.target) placeLabel(q.label); } catch(e){}
         setTimeout(()=>{ showBanner(''); nextQuestion(); }, 900);
       } else {
-        if (btn) btn.classList.add('echo-wrong');
+        btn.classList.add('echo-wrong');
         answersEl.classList.add('echo-shake');
         showBanner(`❌ Incorrect — Correct: ${q.answer}`, '#f87171');
         flashFeedback('wrong');
+        highlightCorrectButton(q.answer);
         setTimeout(()=> answersEl.classList.remove('echo-shake'), 320);
         setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1100);
       }
-    }
-
-    /* ---------- APL overlay renderer ---------- */
-    function renderAPL(q){
-      // badge (top-left) showing the dial value
-      const badge = document.createElement('div');
-      const state = { val: q.apl?.start ?? 10, graded:false };
-      badge.className = 'apl-badge';
-      const updateBadge = () => badge.innerHTML = `${state.val}<small> cmH<sub>2</sub>O</small>`;
-      updateBadge();
-      overlayEl.appendChild(badge);
-
-      // two big arrow buttons inside the image
-      const ctrls = document.createElement('div');
-      ctrls.className = 'echo-inset-controls';
-      const mkBtn = (dir, label, glyph) => {
-        const b = document.createElement('button');
-        b.className = 'echo-inset-btn';
-        b.type = 'button';
-        b.setAttribute('aria-label', label);
-        b.dataset.dir = dir;
-        b.textContent = glyph;      // ↺ / ↻
-        return b;
-      };
-      const btnCCW = mkBtn('ccw','Turn counter-clockwise','↺');
-      const btnCW  = mkBtn('cw','Turn clockwise','↻');
-      ctrls.append(btnCCW, btnCW);
-      overlayEl.appendChild(ctrls);
-
-      const step = q.apl?.step ?? 5;
-      const min  = q.apl?.min ?? 0;
-      const max  = q.apl?.max ?? 70;
-      const correctDir = (q.apl?.correct || 'cw');
-
-      function clickDir(dir){
-        // change the readout value (purely visual)
-        state.val = clamp(state.val + (dir==='cw' ? step : -step), min, max);
-        updateBadge();
-
-        if (state.graded) return;        // only grade the first click
-        state.graded = true;
-        const ok = (dir === correctDir);
-        // Call the same grading visuals
-        if (ok){
-          score += 1; scorePill.textContent = `Score: ${score}`;
-          showBanner('✅ Correct', '#34d399');
-          flashFeedback('correct');
-          disableAnswers();
-          setTimeout(()=>{ showBanner(''); nextQuestion(); }, 900);
-        } else {
-          showBanner(`❌ Incorrect — closes ${correctDir==='cw'?'clockwise':'counter-clockwise'}`, '#f87171');
-          flashFeedback('wrong');
-          disableAnswers();
-          setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1100);
-        }
-      }
-
-      btnCCW.addEventListener('click', ()=> clickDir('ccw'));
-      btnCW .addEventListener('click', ()=> clickDir('cw'));
     }
 
     function placeLabel(text){
@@ -506,10 +464,8 @@ filename: at
 
     function redrawOverlay(){
       const q = ECHO_QUESTIONS[order[idx]];
-      // Only draw pointer arrow for non-interactive, coordinate-based questions
-      if(!q || !q.target || q.kind === 'apl'){ return; }
-
       overlayEl.innerHTML = '';
+      if(!q || !q.target) return;
 
       const r   = wrapEl.getBoundingClientRect();
       const box = getMediaBox();
@@ -548,6 +504,63 @@ filename: at
       dot.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:999px;background:rgba(255,255,255,.85);box-shadow:0 0 10px rgba(255,255,255,.7);transform:translate(-50%,-50%);';
       dot.style.left = x2+'px'; dot.style.top = y2+'px';
       overlayEl.appendChild(dot);
+    }
+
+    /* ===== APL interactive: arrows + badge next to the image ===== */
+    function renderAPL(q){
+      // badge (top-left) showing the dial value
+      const badge = document.createElement('div');
+      const state = { val: q.apl?.start ?? 10, graded:false };
+      badge.className = 'apl-badge';
+      const updateBadge = () => badge.innerHTML = `${state.val}<small> cmH<sub>2</sub>O</small>`;
+      updateBadge();
+      wrapEl.appendChild(badge);
+
+      // big curved arrows (↺ / ↻) next to the image
+      const mkBtn = (dir, label, glyph, extraClass) => {
+        const b = document.createElement('button');
+        b.className = `apl-edge-btn ${extraClass}`;
+        b.type = 'button';
+        b.setAttribute('aria-label', label);
+        b.dataset.dir = dir;
+        b.textContent = glyph;
+        return b;
+      };
+      const btnLeft  = mkBtn('ccw','Turn counter-clockwise','↺','left');
+      const btnRight = mkBtn('cw','Turn clockwise','↻','right');
+      wrapEl.append(btnLeft, btnRight);
+
+      const step = q.apl?.step ?? 5;
+      const min  = q.apl?.min ?? 0;
+      const max  = q.apl?.max ?? 70;
+      const correctDir = (q.apl?.correct || 'cw');
+
+      function disableAPLBtns(){ btnLeft.disabled = true; btnRight.disabled = true; }
+
+      function clickDir(dir){
+        // update readout (visual)
+        state.val = clamp(state.val + (dir==='cw' ? step : -step), min, max);
+        updateBadge();
+
+        if (state.graded) return;     // grade only on the first click
+        state.graded = true;
+        const ok = (dir === correctDir);
+        disableAPLBtns();
+
+        if (ok){
+          score += 1; scorePill.textContent = `Score: ${score}`;
+          showBanner('✅ Correct', '#34d399');
+          flashFeedback('correct');
+          setTimeout(()=>{ showBanner(''); nextQuestion(); }, 900);
+        } else {
+          showBanner(`❌ Incorrect — closes ${correctDir==='cw'?'clockwise':'counter-clockwise'}`, '#f87171');
+          flashFeedback('wrong');
+          setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1100);
+        }
+      }
+
+      btnLeft .addEventListener('click', ()=> clickDir('ccw'));
+      btnRight.addEventListener('click', ()=> clickDir('cw'));
     }
 
     // ── DEV coordinate picker (?dev=1) ──
