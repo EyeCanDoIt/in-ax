@@ -69,6 +69,9 @@ filename: echo
             <img id="echo-image" class="echo-image" src="" alt="TEE question image" />
             <div id="echo-overlay" class="echo-overlay"></div>
 
+              <!-- ✔ View caption on top of the image/video -->
+            <div id="echo-viewTag" class="echo-view-tag" hidden></div>
+
             <div id="echo-flash" class="echo-flash" aria-hidden="true"></div>
             <div id="echo-signal" class="echo-signal" aria-hidden="true"></div>
 
@@ -111,6 +114,8 @@ filename: echo
     // ------------ Data (paths are relative to /tee/index.html) ------------
     const ECHO_QUESTIONS = [
       { image: "../images/4chamber.jpeg",
+         view: "ME Four-Chamber View",     // ← shows “View: ME Four-Chamber View”
+        viewPos: "tr",                    // optional: tl (default) | tr | bl | br
         label: "Left Ventricle", target: { x: 64, y: 63 },
         choices: ["Mitral Valve","Aortic Valve","Left Ventricle","Right Ventricle"],
         answer: "Left Ventricle", hint: "Midesophageal 4-chamber view" },
@@ -199,6 +204,7 @@ filename: echo
     const topBanner = $E("#echo-topBanner");
     const flash   = $E("#echo-flash");
     const signal  = $E("#echo-signal");
+    const viewTag = $E("#echo-viewTag");
 
 
     skipBtn.addEventListener('click', nextQuestion);
@@ -238,6 +244,23 @@ filename: echo
         topBanner.textContent = ''; topBanner.hidden = true; topBanner.style.color = "";
       }
     }
+
+    function updateViewTag(q){
+  if (!viewTag) return;
+  viewTag.className = 'echo-view-tag';    // reset classes/position
+  if (q && q.view){
+    viewTag.textContent = `View: ${q.view}`;
+    // optional placement via q.viewPos: 'tr' | 'bl' | 'br' | 'tl'(default)
+    const pos = (q.viewPos || 'tl').toLowerCase();
+    if (pos === 'tr') viewTag.classList.add('echo-view-tr');
+    if (pos === 'bl') viewTag.classList.add('echo-view-bl');
+    if (pos === 'br') viewTag.classList.add('echo-view-br');
+    viewTag.hidden = false;
+  } else {
+    viewTag.hidden = true;
+  }
+}
+
 
     function showImage(src, alt){
       try { videoEl.pause(); } catch {}
@@ -306,7 +329,8 @@ filename: echo
 wrapEl.classList.remove('is-correct','is-wrong');
 flash.classList.remove('show');
 signal.classList.remove('show');
-      updateBanner(q);
+updateViewTag(q);
+updateBanner(q);
 
       if (q.video || q.sources){ showVideo(q); }
       else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'TEE image'); }
