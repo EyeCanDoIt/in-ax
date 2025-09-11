@@ -167,3 +167,20 @@ html{ -webkit-text-size-adjust:100%; }
   .tab{ font-size:.84rem; }
   .nav-disclaimer{ padding:3px 6px; font-size:.78rem; }
 }
+
+.echo-view-tag{
+  position:absolute; z-index:6;
+  top:12px; left:12px;    /* default: top-left */
+  padding:8px 12px; border-radius:10px;
+  background:rgba(15,23,42,.75);
+  border:1px solid rgba(255,255,255,.12);
+  color:#e8eefc; font-weight:900;
+  font-size:clamp(14px, 2.4vw, 16px);
+  pointer-events:none;    /* never blocks clicks */
+}
+
+/* optional positions */
+.echo-view-tr{ top:12px;  right:12px; left:auto;  bottom:auto; }
+.echo-view-bl{ bottom:12px; left:12px; top:auto;  }
+.echo-view-br{ bottom:12px; right:12px; top:auto; left:auto; }
+
