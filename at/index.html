@@ -259,6 +259,15 @@ filename: at
       imageEl.onerror = null;
       imageEl.removeAttribute('src'); // avoid firing error for ''
     }
+    // --- NEW: full video clearer (prevents “video behind blades”) ---
+    function clearVideoEl(){
+      try { videoEl.pause(); } catch {}
+      videoEl.ontimeupdate = null;
+      while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
+      videoEl.removeAttribute('src');
+      videoEl.removeAttribute('controls');
+      videoEl.style.display = 'none';
+    }
 
     skipBtn.addEventListener('click', nextQuestion);
     restartBtn.addEventListener('click', restart);
@@ -299,11 +308,7 @@ filename: at
     }
 
     function showImage(src, alt){
-      try { videoEl.pause(); } catch {}
-      while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
-      videoEl.removeAttribute('src'); videoEl.removeAttribute('controls');
-      videoEl.style.display = 'none'; videoEl.ontimeupdate = null;
-
+      clearVideoEl(); // ensure no video behind images
       overlayEl.innerHTML = '';
       wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
 
@@ -334,14 +339,12 @@ filename: at
       imageEl.style.display = 'none';
       overlayEl.innerHTML = '';
       wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
-      try { videoEl.pause(); } catch {}
-      while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
-      videoEl.removeAttribute('src'); videoEl.removeAttribute('controls'); videoEl.ontimeupdate = null;
+      clearVideoEl(); // start clean
 
       if (Array.isArray(q.sources) && q.sources.length){
         q.sources.forEach(s => {
           const source = document.createElement('source');
-          source.src = s.src; if (s.type) source.type = s.type;  // fixed line
+          source.src = s.src; if (s.type) source.type = s.type;
           videoEl.appendChild(source);
         });
       } else if (q.video){ videoEl.src = q.video; }
@@ -355,11 +358,12 @@ filename: at
 
         const tryPlay = () => videoEl.play().catch(() => { videoEl.setAttribute('controls',''); });
         if (q.autoplay) { tryPlay(); } else { videoEl.pause(); }
+        videoEl.style.display = '';
         redrawOverlay();
       };
 
       videoEl.onerror = () => showToast('⚠️ Video failed to load');
-      videoEl.style.display = ''; videoEl.load();
+      videoEl.load();
     }
 
     function restart(){
@@ -392,7 +396,8 @@ filename: at
       updateBanner(q);
 
       if (q.type === 'dual-blades') {
-        // Preload ONE image just to size the wrapper, then hide base <img>
+        // fully stop any leftover video, then size wrapper from one PNG and render
+        clearVideoEl();
         const probe = new Image();
         probe.onload = () => {
           wrapEl.style.setProperty('--echo-ar', `${probe.width} / ${probe.height}`);
@@ -636,6 +641,8 @@ filename: at
     function buildDualBlades(q){
       // Safety: ensure base image is hidden so it doesn't show behind overlays
       imageEl.style.display = 'none';
+      // Safety: absolutely hide any video
+      clearVideoEl();
 
       const wrap = document.createElement('div');
       wrap.className = 'dual-wrap';
