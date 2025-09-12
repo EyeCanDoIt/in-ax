@@ -163,7 +163,7 @@ filename: at
     // Place your generated SVGs in /images/ and keep these paths:
     const ECHO_QUESTIONS = [
       /* ── INTERACTIVE: APL valve close direction ── */
-      { image: "../images/apl-valve.svg",
+      { image: "../images/apl-valve.png",
         apl: { start: 10, step: 5, min: 0, max: 70, correct: "cw" }, // 'cw' closes valve
         label: "APL Valve",
         hint: "Target: increase pressure to close",
@@ -175,8 +175,8 @@ filename: at
       {
         type: "dual-blades",
         prompt: "Which blade is designed to obtain a view by directly lifting the epiglottis?",
-        left:  { src: "../images/at-blade-mac.svg",    key: "mac"    },  // curved
-        right: { src: "../images/at-blade-miller.svg", key: "miller" },  // straight
+        left:  { src: "../images/mac.png",    key: "mac"    },  // curved
+        right: { src: "../images/miller.png", key: "miller" },  // straight
         correctKey: "miller"
       },
 
