@@ -372,11 +372,12 @@ filename: at
 
       updateBanner(q);
 
-      if (q.type === 'dual-blades'){
-        // Show a neutral background (optional); hide base <img> since we'll overlay 2 images
-        showImage("../images/mac.png", "Dual blades"); // any image to size container
-        buildDualBlades(q);
-      } else if (q.video || q.sources){ showVideo(q); }
+if (q.type === 'dual-blades'){
+  // use the left blade PNG to size the container (no more hardcoding)
+  showImage(q.left.src, "Dual blades");
+  buildDualBlades(q);
+}
+ else if (q.video || q.sources){ showVideo(q); }
       else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'Anesthesia tech image'); }
       else { showToast('⚠️ Question missing media'); }
 
