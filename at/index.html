@@ -39,7 +39,7 @@ filename: at
 
     /* Small readout badge in the image */
     .apl-badge{
-      position:absolute; left:12px; top:12px; z-index:5;
+      position:absolute; left:12px; top:12px; z-index:6;
       padding:8px 12px; border-radius:10px;
       background:rgba(15,23,42,.75); border:1px solid rgba(255,255,255,.12);
       font-weight:900; font-size:clamp(16px, 2.6vw, 20px); color:#e8eefc;
@@ -51,7 +51,7 @@ filename: at
       position:absolute; inset:0; display:grid;
       grid-template-columns: 1fr 1fr; gap:12px;
       padding: clamp(8px, 2vw, 16px); pointer-events:none;
-      z-index:5;
+      z-index:6; /* above base image & overlay */
     }
     .blade-option{
       pointer-events:auto; position:relative; display:block; border-radius:14px;
@@ -160,7 +160,7 @@ filename: at
     document.getElementById('y').textContent = new Date().getFullYear();
 
     // ------------ Data ------------
-    // Place your generated SVGs in /images/ and keep these paths:
+    // Place your generated PNGs in /images/ and keep these paths:
     const ECHO_QUESTIONS = [
       /* ── INTERACTIVE: APL valve close direction ── */
       { image: "../images/apl-valve.png",
@@ -322,7 +322,7 @@ filename: at
       if (Array.isArray(q.sources) && q.sources.length){
         q.sources.forEach(s => {
           const source = document.createElement('source');
-          source.src = s.src; if (s.type) source.type = s.type;
+          source.src = s.src; if (s.type) s.type = s.type;
           videoEl.appendChild(source);
         });
       } else if (q.video){ videoEl.src = q.video; }
@@ -372,14 +372,24 @@ filename: at
 
       updateBanner(q);
 
-if (q.type === 'dual-blades'){
-  // use the left blade PNG to size the container (no more hardcoding)
-  showImage(q.left.src, "Dual blades");
-  buildDualBlades(q);
-}
- else if (q.video || q.sources){ showVideo(q); }
-      else if (q.image){ showImage(q.image, q.hint ? `Question: ${q.hint}` : 'Anesthesia tech image'); }
-      else { showToast('⚠️ Question missing media'); }
+      if (q.type === 'dual-blades') {
+        // Preload ONE image just to size the wrapper, then hide base <img>
+        const probe = new Image();
+        probe.onload = () => {
+          wrapEl.style.setProperty('--echo-ar', `${probe.width} / ${probe.height}`);
+          imageEl.style.display = 'none';
+          imageEl.src = '';
+          overlayEl.innerHTML = '';
+          buildDualBlades(q);
+        };
+        probe.src = q.left.src; // could also use q.right.src
+      } else if (q.video || q.sources){
+        showVideo(q);
+      } else if (q.image){
+        showImage(q.image, q.hint ? `Question: ${q.hint}` : 'Anesthesia tech image');
+      } else {
+        showToast('⚠️ Question missing media');
+      }
 
       // Build answers unless special types
       answersEl.innerHTML = '';
@@ -605,6 +615,9 @@ if (q.type === 'dual-blades'){
 
     /* ===== Dual-blades interactive ===== */
     function buildDualBlades(q){
+      // Safety: ensure base image is hidden so it doesn't show behind overlays
+      imageEl.style.display = 'none';
+
       const wrap = document.createElement('div');
       wrap.className = 'dual-wrap';
 
