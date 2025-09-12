@@ -257,6 +257,15 @@ filename: at
     const flash     = $E("#echo-flash");
     const signal    = $E("#echo-signal");
 
+    // --- NEW: safe image handler token + clearer ---
+    let imgToken = 0;
+    function clearImageEl(){
+      imgToken++;                 // invalidate previous handlers
+      imageEl.onload = null;
+      imageEl.onerror = null;
+      imageEl.removeAttribute('src'); // avoid firing error for ''
+    }
+
     skipBtn.addEventListener('click', nextQuestion);
     restartBtn.addEventListener('click', restart);
     window.addEventListener('resize', redrawOverlay);
@@ -298,20 +307,36 @@ filename: at
     function showImage(src, alt){
       try { videoEl.pause(); } catch {}
       while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
-      videoEl.removeAttribute('src'); videoEl.removeAttribute('controls'); videoEl.style.display = 'none'; videoEl.ontimeupdate = null;
+      videoEl.removeAttribute('src'); videoEl.removeAttribute('controls');
+      videoEl.style.display = 'none'; videoEl.ontimeupdate = null;
 
       overlayEl.innerHTML = '';
-      // remove any per-question UI
       wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
 
-      imageEl.onload = () => { setAspectFromMedia(); redrawOverlay(); };
-      imageEl.onerror = () => { showToast('⚠️ Image failed to load: ' + src); };
-      imageEl.src = src; imageEl.alt = alt || 'Anesthesia tech image'; imageEl.style.display = '';
+      clearImageEl();
+      const my = imgToken;
 
-      if (imageEl.complete && imageEl.naturalWidth) { setAspectFromMedia(); redrawOverlay(); }
+      imageEl.onload = () => {
+        if (my !== imgToken) return; // stale
+        setAspectFromMedia(); redrawOverlay();
+      };
+      imageEl.onerror = () => {
+        if (my !== imgToken) return; // stale
+        showToast('⚠️ Image failed to load: ' + src);
+      };
+
+      imageEl.alt = alt || 'Anesthesia tech image';
+      imageEl.style.display = '';
+      imageEl.src = src;
+
+      if (imageEl.complete && imageEl.naturalWidth) {
+        if (my !== imgToken) return;
+        setAspectFromMedia(); redrawOverlay();
+      }
     }
 
     function showVideo(q){
+      clearImageEl();
       imageEl.style.display = 'none';
       overlayEl.innerHTML = '';
       wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
@@ -322,7 +347,7 @@ filename: at
       if (Array.isArray(q.sources) && q.sources.length){
         q.sources.forEach(s => {
           const source = document.createElement('source');
-          source.src = s.src; if (s.type) s.type = s.type;
+          source.src = s.src; if (s.type) source.type = s.type;  // fixed line
           videoEl.appendChild(source);
         });
       } else if (q.video){ videoEl.src = q.video; }
@@ -377,8 +402,8 @@ filename: at
         const probe = new Image();
         probe.onload = () => {
           wrapEl.style.setProperty('--echo-ar', `${probe.width} / ${probe.height}`);
+          clearImageEl();
           imageEl.style.display = 'none';
-          imageEl.src = '';
           overlayEl.innerHTML = '';
           buildDualBlades(q);
         };
@@ -457,11 +482,11 @@ filename: at
         setTimeout(()=>{ showBanner(''); nextQuestion(); }, 900);
       } else {
         btn.classList.add('echo-wrong');
+        answersEl.addEventListener('animationend',()=>answersEl.classList.remove('echo-shake'),{once:true});
         answersEl.classList.add('echo-shake');
         showBanner(`❌ Incorrect${q.answer ? ' — Correct: ' + q.answer : ''}`, '#f87171');
         flashFeedback('wrong');
         highlightCorrectButton(q.answer);
-        setTimeout(()=> answersEl.classList.remove('echo-shake'), 320);
         setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1100);
       }
     }
