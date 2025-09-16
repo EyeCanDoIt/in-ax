@@ -17,7 +17,7 @@ filename: at
   <!-- Reuse the Echo game CSS (it styles the game shell/components) -->
   <link rel="stylesheet" href="../assets/css/echo.css">
 
-  <!-- Page-local CSS for APL arrows + Dual-Blades hover -->
+  <!-- Page-local CSS for APL arrows + Dual-Blades + Phlebostatic Axis -->
   <style>
     /* ===== APL: big curved arrows that sit just outside the image edges ===== */
     .apl-edge-btn{
@@ -64,6 +64,41 @@ filename: at
     .blade-option img{ width:100%; height:100%; object-fit:contain; background:#0e1628; }
     .blade-option.correct{ outline:3px solid #34d399; }
     .blade-option.wrong{ outline:3px solid #f87171; }
+
+    /* ===== Phlebostatic Axis (new) ===== */
+    .phleb-wrap{ position:absolute; inset:0; z-index:6; pointer-events:none; }
+    .phleb-plane{
+      position:absolute; left:8px; right:8px; height:0;
+      border-top:2px dashed rgba(207,228,255,.45);
+      pointer-events:none;
+    }
+    .phleb-label{
+      position:absolute; right:12px; transform:translateY(-50%);
+      background:rgba(15,23,42,.75); border:1px solid rgba(255,255,255,.12);
+      color:#cfe4ff; padding:4px 8px; border-radius:8px; font-size:.85rem;
+      pointer-events:none;
+    }
+    .phleb-band{
+      position:absolute; left:8px; right:8px;
+      background:repeating-linear-gradient(90deg, rgba(94,234,212,.15) 0 20px, rgba(94,234,212,.08) 20px 40px);
+      border-top:1px solid rgba(94,234,212,.35);
+      border-bottom:1px solid rgba(94,234,212,.35);
+      pointer-events:none;
+    }
+    .transducer{
+      position:absolute; width:56px; height:56px; border-radius:999px;
+      background:radial-gradient(circle at 30% 30%, #e8eefc, #b7c7ef 70%, #8ea0cc);
+      border:2px solid rgba(255,255,255,.25);
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900; color:#0d1b2a; text-shadow:0 1px 0 rgba(255,255,255,.35);
+      cursor:grab; pointer-events:auto; user-select:none;
+    }
+    .transducer:active{ cursor:grabbing; transform:scale(.98); }
+    .transducer::after{ content:'Tx'; font-size:.9rem; }
+    .phleb-x, .phleb-y{ position:absolute; background:rgba(255,255,255,.12); pointer-events:none; }
+    .phleb-x{ top:12px; bottom:12px; width:2px; left:25%; }
+    .phleb-y{ top:12px; bottom:12px; width:2px; right:25%; }
   </style>
 </head>
 <body class="echo">
@@ -180,6 +215,14 @@ filename: at
         correctKey: "miller"
       },
 
+      /* ── PHLEBOSTATIC AXIS (new) ── */
+      {
+        type: "phleb-axis",
+        image: "../images/patient-supine.png",
+        prompt: "Place the arterial line transducer at the phlebostatic axis (4th ICS, mid-axillary line — right atrium height).",
+        axis: { raY: 52, tolerance: 3, showBand: true } // % from top; tune for your art
+      },
+
       /* ── Regular multiple-choice items (examples / placeholders) ── */
       { image: "../images/ett.JPG",
         label: "Pilot Balloon", target: { x: 40, y: 71.7 },
@@ -231,7 +274,13 @@ filename: at
 
     // ------------ State ------------
     let order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
-    while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target && !ECHO_QUESTIONS[order[0]].apl && ECHO_QUESTIONS[order[0]].type!=='dual-blades') {
+    while (
+      ECHO_QUESTIONS[order[0]] &&
+      !ECHO_QUESTIONS[order[0]].target &&
+      !ECHO_QUESTIONS[order[0]].apl &&
+      ECHO_QUESTIONS[order[0]].type!=='dual-blades' &&
+      ECHO_QUESTIONS[order[0]].type!=='phleb-axis'
+    ) {
       order.push(order.shift());
     }
     let idx = 0, score = 0;
@@ -259,7 +308,7 @@ filename: at
       imageEl.onerror = null;
       imageEl.removeAttribute('src'); // avoid firing error for ''
     }
-    // --- NEW: full video clearer (prevents “video behind blades”) ---
+    // --- NEW: full video clearer (prevents “video behind blades/axis”) ---
     function clearVideoEl(){
       try { videoEl.pause(); } catch {}
       videoEl.ontimeupdate = null;
@@ -268,6 +317,11 @@ filename: at
       videoEl.removeAttribute('controls');
       videoEl.style.display = 'none';
     }
+    // helper: run after <img> is loaded/visible
+    const onImageReady = (fn) => {
+      if (imageEl.style.display !== 'none' && imageEl.complete && imageEl.naturalWidth) fn();
+      else imageEl.addEventListener('load', fn, { once:true });
+    };
 
     skipBtn.addEventListener('click', nextQuestion);
     restartBtn.addEventListener('click', restart);
@@ -310,7 +364,7 @@ filename: at
     function showImage(src, alt){
       clearVideoEl(); // ensure no video behind images
       overlayEl.innerHTML = '';
-      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
+      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap,.phleb-wrap').forEach(el => el.remove());
 
       clearImageEl();
       const my = imgToken;
@@ -338,7 +392,7 @@ filename: at
       clearImageEl();
       imageEl.style.display = 'none';
       overlayEl.innerHTML = '';
-      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
+      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap,.phleb-wrap').forEach(el => el.remove());
       clearVideoEl(); // start clean
 
       if (Array.isArray(q.sources) && q.sources.length){
@@ -368,7 +422,13 @@ filename: at
 
     function restart(){
       order = shuffle([...Array(ECHO_QUESTIONS.length).keys()]);
-      while (ECHO_QUESTIONS[order[0]] && !ECHO_QUESTIONS[order[0]].target && !ECHO_QUESTIONS[order[0]].apl && ECHO_QUESTIONS[order[0]].type!=='dual-blades') {
+      while (
+        ECHO_QUESTIONS[order[0]] &&
+        !ECHO_QUESTIONS[order[0]].target &&
+        !ECHO_QUESTIONS[order[0]].apl &&
+        ECHO_QUESTIONS[order[0]].type!=='dual-blades' &&
+        ECHO_QUESTIONS[order[0]].type!=='phleb-axis'
+      ) {
         order.push(order.shift());
       }
       idx = 0; score = 0; updateMeta();
@@ -390,8 +450,8 @@ filename: at
       flash.classList.remove('show');
       signal.classList.remove('show');
 
-      // clear any APL/Dual overlays
-      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap').forEach(el => el.remove());
+      // clear any per-question overlays
+      wrapEl.querySelectorAll('.apl-edge-btn,.apl-badge,.dual-wrap,.phleb-wrap').forEach(el => el.remove());
 
       updateBanner(q);
 
@@ -407,7 +467,12 @@ filename: at
           buildDualBlades(q);
         };
         probe.src = q.left.src; // could also use q.right.src
-      } else if (q.video || q.sources){
+      }
+      else if (q.type === 'phleb-axis') {
+        showImage(q.image, q.prompt || 'Phlebostatic axis');
+        onImageReady(()=> renderPhlebAxis(q));
+      }
+      else if (q.video || q.sources){
         showVideo(q);
       } else if (q.image){
         showImage(q.image, q.hint ? `Question: ${q.hint}` : 'Anesthesia tech image');
@@ -419,8 +484,8 @@ filename: at
       answersEl.innerHTML = '';
       if (q.apl){
         renderAPL(q);
-      } else if (q.type === 'dual-blades'){
-        // no buttons, selection happens on images
+      } else if (q.type === 'dual-blades' || q.type === 'phleb-axis'){
+        // no buttons; selection happens on the stage
       } else if (Array.isArray(q.choices)) {
         const options = shuffle(q.choices);
         options.forEach(txt => {
@@ -683,6 +748,89 @@ filename: at
 
       left.addEventListener('click',  ()=> choose(left));
       right.addEventListener('click', ()=> choose(right));
+    }
+
+    /* ===== Phlebostatic Axis interactive ===== */
+    function renderPhlebAxis(q){
+      const wrap = document.createElement('div');
+      wrap.className = 'phleb-wrap';
+      wrapEl.appendChild(wrap);
+
+      // Decorative X/Y guides
+      const xGuide = document.createElement('div'); xGuide.className='phleb-x';
+      const yGuide = document.createElement('div'); yGuide.className='phleb-y';
+      wrap.append(xGuide, yGuide);
+
+      // Target plane settings
+      const { raY=52, tolerance=3, showBand=true } = q.axis || {};
+      const box = getMediaBox();
+      const toPxY = pct => box.y + box.h * (pct/100);
+
+      // Acceptable band (optional)
+      const band = document.createElement('div');
+      band.className = 'phleb-band';
+      const bandTop = toPxY(raY - tolerance), bandH = toPxY(raY + tolerance) - bandTop;
+      band.style.top = bandTop + 'px'; band.style.height = bandH + 'px';
+      if (showBand) wrap.appendChild(band);
+
+      // Plane + label
+      const plane = document.createElement('div');
+      plane.className = 'phleb-plane';
+      plane.style.top = toPxY(raY) + 'px';
+      const label = document.createElement('div');
+      label.className = 'phleb-label';
+      label.textContent = 'RA level (4th ICS, MAL)';
+      plane.appendChild(label);
+      wrap.appendChild(plane);
+
+      // Draggable transducer
+      const tx = document.createElement('div');
+      tx.className = 'transducer';
+      let px = box.x + box.w * .5;
+      let py = box.y + box.h * .5;
+      const place = () => { tx.style.left = (px - 28) + 'px'; tx.style.top = (py - 28) + 'px'; };
+      place(); wrap.appendChild(tx);
+
+      // drag logic
+      let drag = false, offX=0, offY=0, graded=false;
+      tx.addEventListener('pointerdown', e=>{
+        drag = true; tx.setPointerCapture(e.pointerId);
+        offX = e.clientX - px; offY = e.clientY - py;
+      });
+      tx.addEventListener('pointermove', e=>{
+        if(!drag) return;
+        px = clamp(e.clientX - offX, box.x, box.x + box.w);
+        py = clamp(e.clientY - offY, box.y, box.y + box.h);
+        place();
+      });
+      tx.addEventListener('pointerup', ()=>{ drag=false; if(!graded) grade(); });
+
+      // click-to-set convenience
+      wrapEl.addEventListener('click', e=>{
+        if (graded) return;
+        const r = wrapEl.getBoundingClientRect();
+        const within = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        if (!within) return;
+        px = clamp(e.clientX, box.x, box.x + box.w);
+        py = clamp(e.clientY, box.y, box.y + box.h);
+        place(); grade();
+      }, { once:false });
+
+      function grade(){
+        graded = true;
+        const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
+        const ok = Math.abs(yPct - raY) <= tolerance;
+        if (ok){
+          score += 1; scorePill.textContent = `Score: ${score}`;
+          showBanner('✅ Correct — transducer leveled to RA (phlebostatic axis)', '#34d399');
+          flashFeedback('correct');
+          setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1000);
+        } else {
+          showBanner('❌ Not quite — level at 4th ICS on the mid-axillary line (RA height).', '#f87171');
+          flashFeedback('wrong');
+          setTimeout(()=>{ showBanner(''); nextQuestion(); }, 1400);
+        }
+      }
     }
 
     // ── DEV coordinate picker (?dev=1) ──
