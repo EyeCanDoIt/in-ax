@@ -11,27 +11,19 @@ filename: daa
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Difficult Airway Algorithm — Game</title>
 
-  <!-- Site styles -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../assets/css/echo.css">
 
   <style>
-    /* Put all Q&A content INSIDE the stage box */
-    .echo-image-wrap{ min-height: 420px; display:flex; }
-    .qa-host{
-      display:flex; flex-direction:column; gap:12px;
-      width:100%; padding:18px;
-    }
+    .echo-image-wrap{ min-height: 440px; display:flex; }
+    .qa-host{ display:flex; flex-direction:column; gap:12px; width:100%; padding:18px; }
 
-    /* Hide the old bottom answers area to avoid a second box */
-    .echo-answers{ display:none !important; }
+    .echo-answers{ display:none !important; } /* keep everything in the top box */
 
-    /* Typography + options layout */
     .scenario{ font-size:1.2rem; color:#dbe7ff; margin:0; font-weight:800; }
     .sub{ color:#9fb1d1; margin:2px 0 10px; font-size:.98rem }
 
     .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
-
     .opt{
       border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
       color:#e6edf9; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer;
@@ -76,7 +68,7 @@ filename: daa
           <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
         </nav>
 
-        <div class="subtitle">Random scenarios • 3 lives • pick the next best step (ASA 2022)</div>
+        <div class="subtitle">One continuous case • Random outcomes • 3 lives • Oxygenation first</div>
       </div>
     </div>
   </header>
@@ -86,11 +78,11 @@ filename: daa
       <div class="echo-header">
         <div class="echo-title-wrap">
           <h1 class="echo-title">Difficult Airway Algorithm</h1>
-          <span class="echo-sub">Limit attempts • Call for help early • Oxygenation first</span>
+          <span class="echo-sub">ASA 2022 — limit attempts, call for help early</span>
         </div>
         <div class="echo-meta">
           <span id="scorePill" class="echo-pill">Score: 0</span>
-          <span id="stepPill" class="echo-pill">Q 1/1</span>
+          <span id="stepPill" class="echo-pill">Step 1</span>
           <span id="livesPill" class="lives-pill"><span class="heart">♥♥♥</span> Lives</span>
         </div>
       </div>
@@ -100,12 +92,10 @@ filename: daa
 
         <div class="echo-stage">
           <div class="echo-image-wrap">
-            <!-- Q&A mounts here INSIDE the top box -->
             <div id="qa" class="qa-host"></div>
           </div>
         </div>
 
-        <!-- footer progress + restart -->
         <div class="echo-footer">
           <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
           <div class="echo-controls">
@@ -124,222 +114,308 @@ filename: daa
   </footer>
 
   <script>
-  // ---------- helpers ----------
+  /* ---------- small helpers ---------- */
   const $ = (s, el=document)=>el.querySelector(s);
-  const qaHost = $('#qa');
-  const banner  = $('#banner');
-  const scoreEl = $('#scorePill');
-  const stepEl  = $('#stepPill');
-  const livesEl = $('#livesPill');
-  const bar     = $('#bar');
-  const toast   = $('#toast');
+  const qa = $('#qa'); const banner = $('#banner'); const toast = $('.echo-toast');
+  const scorePill = $('#scorePill'); const stepPill = $('#stepPill'); const livesPill = $('#livesPill'); const bar = $('#bar');
   $('#y').textContent = new Date().getFullYear();
   $('#restartBtn').addEventListener('click', init);
 
-  function setBanner(text,color){ banner.textContent=text||''; banner.hidden=!text; banner.style.color=color||'' }
-  function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('echo-show'), 1000); }
-  const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b };
+  function setBanner(t,c){ banner.textContent=t||''; banner.hidden=!t; banner.style.color=c||'' }
+  function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b }
+  function hearts(n){ return '♥'.repeat(n) + '♡'.repeat(3-n) }
+  function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('echo-show'), 900); }
 
-  // ---------- scenario bank ----------
-  const SCENARIOS = [
-    { id:'dl_difficult', scenario:'Pre-intubation: Suspected difficult laryngoscopy.', options:[
-      {t:'Choose an AWAKE intubation strategy', ok:true, why:'Any YES factor (e.g., difficult laryngoscopy) supports an awake approach.'},
-      {t:'Induce general anesthesia now and proceed to DL'},
-      {t:'Skip preoxygenation and intubate quickly'},
-      {t:'“Test” mask ventilation first under deep anesthesia'}
-    ]},
-    { id:'mask_diff', scenario:'Pre-intubation: Suspected difficult ventilation with mask/SGA.', options:[
-      {t:'Choose an AWAKE intubation strategy', ok:true, why:'If ventilation may fail after induction, maintain spontaneous breathing.'},
-      {t:'Rapid sequence induction then DL'},
-      {t:'Elective tracheostomy for all difficult airways'},
-      {t:'Give deep sedation and try DL repeatedly'}
-    ]},
-    { id:'aspiration_risk', scenario:'Pre-intubation: Significant increased risk of aspiration (full stomach).', options:[
-      {t:'Choose an AWAKE intubation strategy', ok:true, why:'Awake approach preserves protective reflexes and oxygenation.'},
-      {t:'Deep anesthesia and mask ventilation'},
-      {t:'Place SGA first in every case'},
-      {t:'Skip suction availability'}
-    ]},
-    { id:'rapid_desat', scenario:'Pre-intubation: Increased risk of rapid desaturation.', options:[
-      {t:'Consider AWAKE intubation (or aggressively optimize oxygenation if asleep)', ok:true, why:'High desat risk → awake often safer.'},
-      {t:'Skip preoxygenation to save time'},
-      {t:'Plan multiple quick DL attempts'},
-      {t:'Avoid nasal oxygen during attempts'}
-    ]},
-    { id:'diff_emergency_access', scenario:'Pre-intubation: Suspected difficult EMERGENCY invasive airway.', options:[
-      {t:'Choose an AWAKE intubation strategy', ok:true, why:'If rescue access may be difficult, avoid losing the airway under GA.'},
-      {t:'Induce GA and “see how it goes”'},
-      {t:'Always perform front-of-neck access electively'},
-      {t:'Rely on repeated DL first'}
-    ]},
-    { id:'no_flags', scenario:'Pre-intubation: No major risk factors identified.', options:[
-      {t:'Proceed with intubation AFTER INDUCTION with optimal preoxygenation', ok:true, why:'When screening is negative, after-induction approach is reasonable.'},
-      {t:'Mandatory awake approach for everyone'},
-      {t:'Skip capnography after tube placement'},
-      {t:'Avoid calling for help if difficulties arise'}
-    ]},
-    { id:'awake_fail', scenario:'Awake intubation attempt FAILED.', options:[
-      {t:'Assess ability to VENTILATE (mask) and oxygenate', ok:true, why:'After a failed attempt, confirm you can ventilate and maintain oxygenation.'},
-      {t:'Repeat attempts indefinitely'},
-      {t:'Paralyze immediately and try DL'},
-      {t:'Ignore SpO₂ and continue'}
-    ]},
-    { id:'asleep_fail', scenario:'After induction: First intubation attempt FAILED.', options:[
-      {t:'Check MASK ventilation (CO₂) and oxygenate', ok:true, why:'Limit attempts and ensure oxygenation before continuing.'},
-      {t:'Attempt DL repeatedly without reassessment'},
-      {t:'Skip to extubation plan'},
-      {t:'Disable alarms to reduce stress'}
-    ]},
-    { id:'mask_ok', scenario:'Ventilation ADEQUATE with mask (CO₂ confirmed).', options:[
-      {t:'Non-emergency path: limit attempts, consider AWAKENING or ALTERNATIVE approach', ok:true, why:'When ventilation is adequate, step back and choose a safer plan.'},
-      {t:'Go directly to emergency front-of-neck access'},
-      {t:'Continue unlimited DL attempts'},
-      {t:'Remove monitoring to simplify'}
-    ]},
-    { id:'mask_not_ok', scenario:'Mask ventilation NOT adequate.', options:[
-      {t:'Consider/attempt SUPRAGLOTTIC AIRWAY', ok:true, why:'SGA is the next rescue step when mask ventilation is inadequate.'},
-      {t:'Keep trying mask only'},
-      {t:'Wake immediately without oxygenation'},
-      {t:'Skip calling for help'}
-    ]},
-    { id:'sga_ok', scenario:'SGA ventilation ADEQUATE.', options:[
-      {t:'Non-emergency path: wake patient OR intubate through SGA', ok:true, why:'With oxygenation restored, you can wake or proceed via SGA.'},
-      {t:'Remove SGA and retry DL repeatedly'},
-      {t:'Go to emergency invasive airway now'},
-      {t:'Turn off oxygen to avoid gastric insufflation'}
-    ]},
-    { id:'sga_not_ok', scenario:'SGA ventilation NOT adequate (can’t ventilate).', options:[
-      {t:'EMERGENCY pathway: prepare for FRONT-OF-NECK ACCESS (limit attempts, call for help)', ok:true, why:'CICO: prioritize emergency invasive access.'},
-      {t:'Try DL several more times first'},
-      {t:'Pause and reassess later without oxygenation'},
-      {t:'Remove oxygen to see true baseline'}
-    ]},
-    { id:'emerg_escalate', scenario:'Emergency pathway with critical desaturation.', options:[
-      {t:'Proceed to EMERGENCY INVASIVE AIRWAY (front-of-neck access)', ok:true, why:'Definitive rescue when oxygenation cannot be maintained.'},
-      {t:'Keep attempting DL briefly again'},
-      {t:'Wait for saturation to recover on its own'},
-      {t:'Take a break and re-attempt in 10 minutes'}
-    ]},
-    { id:'tube_in', scenario:'Tube placed — capnography CONFIRMED.', options:[
-      {t:'Secure tube and plan EXTUBATION strategy (consider AEC if high-risk)', ok:true, why:'Confirm with capnography, secure tube, plan safe extubation.'},
-      {t:'Skip capnography; rely on chest rise'},
-      {t:'Remove the tube to check positioning'},
-      {t:'Ignore securing device until later'}
-    ]},
-    { id:'extubation_plan', scenario:'High-risk airway: planning EXTUBATION.', options:[
-      {t:'Awake extubation over AIRWAY EXCHANGE CATHETER with monitoring', ok:true, why:'Safer re-intubation access and oxygenation.'},
-      {t:'Deep extubation in OR without plan'},
-      {t:'Pull the tube in PACU without monitors'},
-      {t:'Ask patient to self-remove the tube'}
-    ]}
-  ];
-
-  // ---------- game state ----------
-  let order = [], idx = 0, score = 0, lives = 3, locked = false;
-
-  function hearts(n){ return '♥'.repeat(n) + '♡'.repeat(3-n); }
+  /* ---------- game state ---------- */
+  const rng = ()=>Math.random();
+  let state;
 
   function init(){
-    order = shuffle([...Array(SCENARIOS.length).keys()]);
-    idx = 0; score = 0; lives = 3; locked = false;
+    state = {
+      stepId: rng() < 0.5 ? 'awake_entry' : 'induction_entry', // pick a starting pathway
+      stepCount: 1,
+      score: 0,
+      lives: 3,
+      // runtime flags for random outcomes
+      awakeSuccess: null,
+      firstAttemptSuccess: null,
+      maskAdequate: null,
+      sgaAdequate: null,
+      locked: false
+    };
     updateMeta();
-    setBanner('You have 3 lives. Pick the next best step for each scenario.', '#e2e8f0');
-    renderQuestion();
+    setBanner('You have 3 lives. Pick the BEST next step each time.', '#e2e8f0');
+    render();
   }
 
   function updateMeta(){
-    scoreEl.textContent = `Score: ${score}`;
-    stepEl.textContent  = `Q ${Math.min(idx+1, SCENARIOS.length)} / ${SCENARIOS.length}`;
-    livesEl.innerHTML   = `<span class="heart">${hearts(lives)}</span> Lives`;
-    const pct = (idx/SCENARIOS.length)*100;
-    bar.style.inset = `0 ${Math.max(0,100-pct)}% 0 0`;
+    scorePill.textContent = `Score: ${state.score}`;
+    stepPill.textContent  = `Step ${state.stepCount}`;
+    livesPill.innerHTML   = `<span class="heart">${hearts(state.lives)}</span> Lives`;
+    bar.style.inset = `0 ${Math.max(0, 100 - state.stepCount*7)}% 0 0`;
   }
 
-  function renderQuestion(){
-    qaHost.innerHTML = '';
-    if (lives <= 0){ return endGame(false); }
-    if (idx >= order.length){ return endGame(true); }
+  function loseLife(msg){
+    state.lives = Math.max(0, state.lives-1);
+    updateMeta();
+    if (msg) setBanner(msg, '#f87171');
+    if (state.lives === 0){ return endGame(false); }
+  }
 
-    locked = false;
-    const q = SCENARIOS[ order[idx] ];
+  function addScore(n=1, msg='✅ Correct'){
+    state.score += n; updateMeta(); setBanner(msg, '#34d399');
+  }
 
-    const h = document.createElement('p'); h.className='scenario'; h.textContent=q.scenario;
-    const sub = document.createElement('p'); sub.className='sub'; sub.textContent='Choose the best next step:';
+  /* ---------- steps (node factory) ---------- */
+  // Each step returns {title, sub, options:[{txt, correct, next, explain, onPick?}]}
+  function getStep(id){
+    switch(id){
 
+      /* ===== A) Awake pathway entry ===== */
+      case 'awake_entry':
+        return {
+          title: 'Pre-intubation screen',
+          sub: 'Suspected difficult airway + increased aspiration risk. What is your next move?',
+          options: [
+            { txt:'Intubation attempt with patient AWAKE', correct:true, explain:'Any YES factor such as difficult laryngoscopy or aspiration risk supports an awake approach.',
+              next: ()=>{
+                // random outcome of awake attempt
+                state.awakeSuccess = rng() < 0.7; // ~70% success
+                return state.awakeSuccess ? 'tube_ok' : 'awake_failed';
+              }
+            },
+            { txt:'Induce general anesthesia now and attempt DL', correct:false,
+              explain:'Unsafe choice here: after induction you may lose airway/oxygenation.',
+              onPick: ()=>loseLife('❌ Unsafe: GA when awake is indicated → life -1'),
+              next:'induction_after' },
+            { txt:'Skip preoxygenation and intubate quickly', correct:false,
+              onPick: ()=>loseLife('❌ Skipping preoxygenation increases hypoxemia risk.') },
+            { txt:'Deep sedation and “test” mask ventilation first', correct:false,
+              onPick: ()=>loseLife('❌ Sedation can worsen airway patency without securing it.') },
+          ]
+        };
+
+      case 'awake_failed':
+        return {
+          title: 'Awake intubation FAILED',
+          sub: 'Best next step?',
+          options: [
+            { txt:'Postpone the case', correct:true,
+              explain:'ASA: After failed awake attempt and maintained oxygenation, consider postponing or alternative plans.',
+              next:'end_safe' },
+            { txt:'Repeat attempts indefinitely', correct:false,
+              onPick: ()=>loseLife('❌ Unlimited attempts increase trauma and failure.') },
+            { txt:'Induce general anesthesia now and try DL', correct:false,
+              onPick: ()=>loseLife('❌ Induction after failed awake attempt risks loss of airway.') },
+            { txt:'Proceed straight to emergency front-of-neck access', correct:false,
+              onPick: ()=>loseLife('❌ Not indicated if oxygenation is preserved and no CICO.') },
+          ]
+        };
+
+      /* ===== B) Induction pathway entry ===== */
+      case 'induction_entry':
+        return {
+          title: 'Pre-intubation screen',
+          sub: 'No major risk factors identified. What is your approach?',
+          options: [
+            { txt:'Proceed AFTER INDUCTION with optimal preoxygenation', correct:true,
+              explain:'Reasonable after a negative screen. Ensure high-quality preoxygenation.',
+              next:'induction_after' },
+            { txt:'Mandatory awake intubation for all patients', correct:false,
+              onPick: ()=>loseLife('❌ Awake is not mandatory without risk factors.') },
+            { txt:'Skip capnography to simplify', correct:false,
+              onPick: ()=>loseLife('❌ Continuous capnography is required.') },
+            { txt:'Disable alarms to avoid noise', correct:false,
+              onPick: ()=>loseLife('❌ Keep monitoring on.') },
+          ]
+        };
+
+      case 'induction_after':
+        // After induction, first attempt outcome is random
+        state.firstAttemptSuccess = rng() < 0.65;
+        if (state.firstAttemptSuccess){
+          return {
+            title:'Intubation attempt after induction',
+            sub:'Success on first attempt.',
+            options:[
+              { txt:'Continue to secure and confirm the tube', correct:true, next:'tube_ok' },
+              { txt:'Remove the tube and try again for practice', correct:false, onPick:()=>loseLife('❌ Do not create problems after success.') },
+              { txt:'Turn off capnography', correct:false, onPick:()=>loseLife('❌ Always confirm with ETCO₂.') },
+              { txt:'Ignore securing device', correct:false, onPick:()=>loseLife('❌ Secure the airway.') },
+            ]
+          };
+        } else {
+          return {
+            title:'Intubation attempt after induction',
+            sub:'FAILED first attempt. Best immediate action?',
+            options:[
+              { txt:'Check MASK ventilation (CO₂) and oxygenate; limit attempts; consider calling for help', correct:true,
+                next: ()=>{
+                  state.maskAdequate = rng() < 0.6; // ~60% adequate
+                  return state.maskAdequate ? 'mask_ok' : 'mask_bad';
+                }},
+              { txt:'Keep attempting DL repeatedly without reassessment', correct:false, onPick:()=>loseLife('❌ Limit attempts; reassess oxygenation.') },
+              { txt:'Disable alarms and try to relax', correct:false, onPick:()=>loseLife('❌ Safety risk.') },
+              { txt:'Proceed directly to extubation plan', correct:false, onPick:()=>loseLife('❌ Not relevant now.') },
+            ]
+          };
+        }
+
+      case 'mask_ok':
+        return {
+          title:'Mask ventilation ADEQUATE (CO₂ confirmed)',
+          sub:'With oxygenation secured, what now?',
+          options:[
+            { txt:'Limit attempts and consider AWAKENING / alternative approach', correct:true,
+              explain:'Non-emergency pathway if ventilation is adequate.',
+              next:'end_safe' },
+            { txt:'Unlimited DL attempts until success', correct:false, onPick:()=>loseLife('❌ Limit attempts (injury/hypoxemia risk).') },
+            { txt:'Go straight to emergency front-of-neck access', correct:false, onPick:()=>loseLife('❌ Not indicated if ventilation adequate.') },
+            { txt:'Remove monitoring to simplify', correct:false, onPick:()=>loseLife('❌ Keep monitoring on.') },
+          ]
+        };
+
+      case 'mask_bad':
+        return {
+          title:'Mask ventilation NOT adequate',
+          sub:'Next best step?',
+          options:[
+            { txt:'Consider/attempt SUPRAGLOTTIC AIRWAY (SGA)', correct:true,
+              next: ()=>{
+                state.sgaAdequate = rng() < 0.6;
+                return state.sgaAdequate ? 'sga_ok' : 'sga_bad';
+              }},
+            { txt:'Keep trying mask only', correct:false, onPick:()=>loseLife('❌ Escalate to SGA when mask inadequate.') },
+            { txt:'Wait for sats to recover on their own', correct:false, onPick:()=>loseLife('❌ Oxygenation first—act now.') },
+            { txt:'Give deep sedation and reassess later', correct:false, onPick:()=>loseLife('❌ Sedation can worsen airway without ventilation.') },
+          ]
+        };
+
+      case 'sga_ok':
+        return {
+          title:'SGA ventilation ADEQUATE',
+          sub:'Best next step?',
+          options:[
+            { txt:'Non-emergency path: wake patient OR intubate through SGA', correct:true, next:'end_safe' },
+            { txt:'Remove SGA and retry DL repeatedly', correct:false, onPick:()=>loseLife('❌ Keep oxygenation; avoid repeated DL.') },
+            { txt:'Go to emergency invasive airway now', correct:false, onPick:()=>loseLife('❌ Not indicated if ventilation adequate.') },
+            { txt:'Turn off oxygen to avoid gastric insufflation', correct:false, onPick:()=>loseLife('❌ Maintain oxygenation.') },
+          ]
+        };
+
+      case 'sga_bad':
+        return {
+          title:'SGA ventilation NOT adequate — CICO evolving',
+          sub:'Next best step?',
+          options:[
+            { txt:'EMERGENCY pathway: prepare Front-of-Neck Access (FONA), call for help', correct:true, next:'tube_ok' },
+            { txt:'Try a few more DL attempts first', correct:false, onPick:()=>loseLife('❌ Do not delay emergency access in CICO.') },
+            { txt:'Pause and reassess later without oxygenation', correct:false, onPick:()=>loseLife('❌ Oxygenation cannot wait.') },
+            { txt:'Remove oxygen “to see the baseline”', correct:false, onPick:()=>loseLife('❌ Keep oxygenation.') },
+          ]
+        };
+
+      case 'tube_ok':
+        return {
+          title:'Tube placed — capnography CONFIRMED',
+          sub:'Choose the best next step:',
+          options:[
+            { txt:'Secure tube and plan EXTUBATION strategy (consider AEC if high-risk)', correct:true, next:'end_safe' },
+            { txt:'Skip capnography; rely on chest rise', correct:false, onPick:()=>loseLife('❌ Always confirm with ETCO₂.') },
+            { txt:'Remove the tube to check positioning', correct:false, onPick:()=>loseLife('❌ Keep a confirmed airway secure.') },
+            { txt:'Ignore securing device until later', correct:false, onPick:()=>loseLife('❌ Secure immediately.') },
+          ]
+        };
+
+      /* virtual end nodes */
+      case 'end_safe':
+        return { title:'Case finished safely', sub:'Nice work — guideline-concordant decisions.', options:[
+          { txt:'Play again', correct:true, next:()=>{ init(); return null; } }
+        ] };
+
+      default:
+        return { title:'(Unknown)', sub:'', options:[{txt:'Restart', correct:true, next:()=>{ init(); return null; }}] };
+    }
+  }
+
+  /* ---------- renderer ---------- */
+  function render(){
+    const step = getStep(state.stepId);
+    qa.innerHTML = '';
+    state.locked = false;
+
+    // Title + subtitle
+    const h = document.createElement('p'); h.className='scenario'; h.textContent = step.title;
+    const sub = document.createElement('p'); sub.className='sub'; sub.textContent = step.sub || '';
+    qa.append(h,sub);
+
+    // Options
     const grid = document.createElement('div'); grid.className='grid';
-    const opts = shuffle(q.options.map(o=>({ ...o })));
-
-    opts.forEach((o,oi)=>{
+    const opts = shuffle(step.options.map(o=>({...o})));
+    opts.forEach((o, i)=>{
       const b = document.createElement('button');
-      b.className='opt';
-      b.innerHTML = `<strong>${oi+1}. ${o.t}</strong>`;
-      b.addEventListener('click', ()=> choose(b, o.ok, o.why, opts));
+      b.className = 'opt';
+      b.innerHTML = `<strong>${i+1}. ${o.txt}</strong>`;
+      b.addEventListener('click', ()=> choose(b,o,opts,grid));
       grid.appendChild(b);
     });
+    qa.appendChild(grid);
 
-    qaHost.append(h, sub, grid);
-
-    // keyboard shortcuts 1–4 + R
+    // keyboard shortcuts
     document.onkeydown = (e)=>{
       if (e.key.toLowerCase()==='r'){ init(); return; }
-      if (locked) return;
+      if (state.locked) return;
       const k = +e.key;
       if (k>=1 && k<=grid.children.length){ grid.children[k-1].click(); }
     };
   }
 
-  function choose(btn, ok, why, opts){
-    if (locked) return; locked = true;
+  function choose(btn, opt, all, grid){
+    if (state.locked) return; state.locked = true;
 
-    const grid = btn.parentElement;
-    Array.from(grid.children).forEach((b, i)=>{
-      const good = !!opts[i].ok;
+    // reveal right/wrong
+    Array.from(grid.children).forEach((b, idx)=>{
+      const good = !!all[idx].correct;
       if (good) b.classList.add('correct');
       if (b === btn && !good) b.classList.add('wrong');
       b.disabled = true;
     });
 
-    if (ok){
-      score += 1; updateMeta();
-      setBanner('✅ Correct', '#34d399');
-      showExplain(why || 'Guideline-concordant choice.');
-      setTimeout(()=>{ idx++; setBanner(''); renderQuestion(); }, 900);
-    } else {
-      lives -= 1; updateMeta();
-      setBanner('❌ Incorrect', '#f87171');
-      const best = opts.find(o=>o.ok)?.t || 'See ASA 2022 pathway';
-      showExplain(`Best next step: ${best}. ${why||''}`);
-      setTimeout(()=>{ if (lives<=0) endGame(false); else { idx++; setBanner(''); renderQuestion(); } }, 1200);
-    }
-  }
+    // feedback + scoring
+    if (opt.correct){ addScore(1, '✅ Correct'); }
+    else { loseLife(); setBanner('❌ Incorrect', '#f87171'); }
 
-  function showExplain(text){
-    const note = document.createElement('div');
-    note.className = 'explain';
-    note.textContent = text || '';
-    qaHost.appendChild(note);
+    // explanation bubble
+    if (opt.explain){
+      const note = document.createElement('div'); note.className='explain';
+      note.textContent = opt.explain; qa.appendChild(note);
+    }
+
+    // advance
+    setTimeout(()=>{
+      state.stepCount++;
+      const nextId = typeof opt.next === 'function' ? opt.next() : opt.next;
+      if (nextId){ state.stepId = nextId; updateMeta(); setBanner(''); render(); }
+      else { /* next handled inside opt.next (e.g., restart) */ }
+    }, opt.correct ? 850 : 1100);
   }
 
   function endGame(cleared){
-    qaHost.innerHTML = '';
-    const title = cleared ? 'Nice work! 🎉' : 'Could not intubate — patient coded.';
-    const color = cleared ? '#34d399' : '#f87171';
+    qa.innerHTML = '';
     const h = document.createElement('h2');
-    h.style.cssText = `margin:.2rem 0 .6rem; color:${color}`;
-    h.textContent = title;
-    const p = document.createElement('p');
-    p.className = 'sub';
-    p.innerHTML = `Final score: <strong>${score}</strong> / ${SCENARIOS.length}. ${cleared ? 'You completed all scenarios.' : 'Review the algorithm and try again.'}`;
-    const btn = document.createElement('button');
-    btn.className = 'echo-btn'; btn.textContent = 'Play again';
+    h.style.cssText = `margin:.2rem 0 .6rem; color:${cleared?'#34d399':'#f87171'}`;
+    h.textContent = cleared ? 'Nice work! 🎉' : 'Could not intubate — patient coded.';
+    const p = document.createElement('p'); p.className='sub';
+    p.innerHTML = `Final score: <strong>${state.score}</strong>. ${cleared ? 'You completed the case safely.' : 'Review the algorithm and try again.'}`;
+    const btn = document.createElement('button'); btn.className='echo-btn'; btn.textContent='Play again';
     btn.addEventListener('click', init);
-    const tip = document.createElement('p');
-    tip.className = 'sub'; tip.innerHTML = `Tip: press <span class="kbd">R</span> to restart anytime.`;
-    qaHost.append(h,p,btn,tip);
+    const tip = document.createElement('p'); tip.className='sub';
+    tip.innerHTML = `Tip: press <span class="kbd">R</span> to restart anytime.`;
+    qa.append(h,p,btn,tip);
     document.onkeydown = (e)=>{ if (e.key.toLowerCase()==='r' || e.key==='Enter') init(); };
   }
 
-  // go!
+  // start
   init();
   </script>
 </body>
