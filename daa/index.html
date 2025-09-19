@@ -11,69 +11,28 @@ filename: daa
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Difficult Airway Algorithm — Game</title>
 
-  <!-- Shared site-wide CSS -->
+  <!-- Use your site styles -->
   <link rel="stylesheet" href="../style.css">
-  <!-- Reuse your Echo game shell -->
   <link rel="stylesheet" href="../assets/css/echo.css">
 
-  <!-- Page-local CSS -->
   <style>
-    /* Oxygen pill (top right) */
-    .ox-pill{
-      position:absolute; right:12px; top:12px; z-index:6;
-      padding:.45rem .75rem; border-radius:999px;
-      background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.12);
-      font-weight:800; color:#e8eefc; font-variant-numeric:tabular-nums;
-      display:flex; align-items:center; gap:.5rem;
+    /* Page-local styles kept tiny & readable */
+    .algo-grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+    .algo-btn{
+      border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04);
+      color:#e6edf9; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer;
+      transition:.16s ease transform,.16s ease border-color,.16s ease background;
     }
-    .ox-dot{ width:10px; height:10px; border-radius:999px; background:#22c55e; box-shadow:0 0 10px rgba(34,197,94,.8); }
-    .ox-pill.warn  .ox-dot{ background:#f59e0b; box-shadow:0 0 10px rgba(245,158,11,.8); }
-    .ox-pill.danger .ox-dot{ background:#ef4444; box-shadow:0 0 10px rgba(239,68,68,.9); }
-
-    /* Options area (reuses echo-answers but allow grids) */
-    .daa-options{
-      display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px;
-    }
-    .daa-btn{
-      --b:rgba(255,255,255,.12);
-      border:1px solid var(--b); border-radius:12px; background:rgba(255,255,255,.03);
-      color:#e6edf9; padding:12px 14px; text-align:left; cursor:pointer;
-      transition:.18s ease transform, .18s ease border-color, .18s ease background;
-    }
-    .daa-btn:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.06); }
-    .daa-btn small{ display:block; opacity:.8; }
-
-    /* Attempt panel */
-    .attempt-wrap{ display:flex; flex-direction:column; gap:12px; }
-    .attempt-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .attempt-cta{ padding:10px 14px; border-radius:10px; font-weight:800; background:#334155; color:#e8eefc; border:1px solid rgba(255,255,255,.12); cursor:pointer; }
-    .chip{ padding:.25rem .5rem; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); font-size:.85rem; }
-
-    /* Timed CICO sequence */
-    .cico-steps{ display:flex; gap:8px; flex-wrap:wrap; margin:.25rem 0 .5rem; }
-    .cico-step{ padding:.45rem .7rem; border-radius:999px; border:1px dashed rgba(255,255,255,.18); background:rgba(255,255,255,.04); }
-    .cico-step.done{ border-style:solid; background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.55); }
-    .timer{
-      position:absolute; left:12px; top:12px; z-index:6;
-      padding:.45rem .75rem; border-radius:999px;
-      background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.12);
-      color:#e8eefc; font-weight:800;
-    }
-
-    /* Scene label at bottom-right (like a caption) */
-    .scene-tag{
-      position:absolute; right:12px; bottom:12px; z-index:5;
-      padding:.35rem .6rem; border-radius:8px;
-      background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.12);
-      color:#cbd5e1; font-size:.85rem;
-    }
-
-    /* Hide the arrow/label SVG from echo (we don't use it here) */
-    .echo-overlay{ pointer-events:none; }
-
-    /* Make the stage a bit taller on wide screens */
-    .echo-image-wrap{ --echo-min-h: 420px; }
-    @media (min-width: 900px){ .echo-image-wrap{ --echo-min-h: 520px; } }
+    .algo-btn:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.07); }
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
+    .chip{ padding:.25rem .6rem; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); font-size:.85rem; color:#cbd5e1; }
+    .note{ color:#a5b4fc; font-weight:700; }
+    .danger{ color:#f87171; font-weight:800; }
+    .ok{ color:#34d399; font-weight:800; }
+    .pill{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .6rem; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04); color:#cbd5e1; }
+    .log{ margin-top:10px; color:#94a3b8; font-size:.95rem; max-height:140px; overflow:auto; }
+    .tiny{ font-size:.9rem; opacity:.9 }
+    .echo-image-wrap{ min-height:0; } /* no image on this page */
   </style>
 </head>
 <body class="echo">
@@ -93,44 +52,36 @@ filename: daa
           <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
         </nav>
 
-        <div class="subtitle">Difficult Airway Algorithm — learn by playing!</div>
+        <div class="subtitle">Difficult Airway Algorithm — button-only trainer</div>
       </div>
     </div>
   </header>
 
-  <!-- Game -->
+  <!-- Game shell -->
   <div class="echo-root">
     <div class="echo-app">
       <div class="echo-header">
         <div class="echo-title-wrap">
           <h1 class="echo-title">Difficult Airway Algorithm</h1>
-          <span class="echo-sub">Choose guideline-concordant steps while protecting oxygenation</span>
+          <span class="echo-sub">Follow guideline steps. Limit attempts. Oxygenation first.</span>
         </div>
-
         <div class="echo-meta">
           <span id="scorePill" class="echo-pill">Score: 0</span>
-          <span id="stepPill" class="echo-pill">Case 1</span>
+          <span id="stepPill" class="echo-pill">Step 1</span>
         </div>
       </div>
 
       <section class="echo-card">
-        <div id="topBanner" class="echo-topbanner" hidden></div>
+        <div id="banner" class="echo-topbanner" hidden></div>
 
+        <!-- (empty stage—no image needed) -->
         <div class="echo-stage">
-          <div id="stage" class="echo-image-wrap">
-            <video id="vid" class="echo-image" style="display:none" playsinline muted></video>
-            <img id="img" class="echo-image" alt="Scene" />
-            <div id="overlay" class="echo-overlay"></div>
-
-            <div id="flash" class="echo-flash" aria-hidden="true"></div>
-            <div id="signal" class="echo-signal" aria-hidden="true"></div>
-
-            <!-- live widgets -->
-            <div id="ox" class="ox-pill" hidden>
-              <div class="ox-dot"></div><span id="oxVal">SpO₂ 100%</span>
+          <div class="echo-image-wrap" style="padding:0">
+            <div class="chips" style="padding:8px 0 0 0">
+              <span class="pill">Optimize oxygenation throughout</span>
+              <span class="pill">Always evaluate for emergency invasive airway</span>
+              <span class="pill"><span id="attempts">Attempts: 0</span></span>
             </div>
-            <div id="timer" class="timer" hidden>20s</div>
-            <div id="sceneTag" class="scene-tag" hidden></div>
           </div>
         </div>
 
@@ -139,11 +90,17 @@ filename: daa
         <div class="echo-footer">
           <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
           <div class="echo-controls">
-            <button id="restart" class="echo-link">Restart</button>
+            <button id="restartBtn" class="echo-link">Restart</button>
           </div>
         </div>
       </section>
+
+      <!-- path log -->
+      <div class="container">
+        <div class="log tiny" id="log"></div>
+      </div>
     </div>
+
     <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
   </div>
 
@@ -152,549 +109,316 @@ filename: daa
   </footer>
 
   <script>
-  /* ---------- SETUP ---------- */
-  document.getElementById('y').textContent = new Date().getFullYear();
+  /* ---------- helpers ---------- */
+  const $ = (s, el=document)=>el.querySelector(s);
+  const answers = $('#answers');
+  const banner  = $('#banner');
+  const bar     = $('#bar');
+  const scoreEl = $('#scorePill');
+  const stepEl  = $('#stepPill');
+  const logEl   = $('#log');
+  const attemptsEl = $('#attempts');
+  const toastEl = $('#toast');
 
-  const $ = (s,el=document)=>el.querySelector(s);
-  const answers   = $('#answers');
-  const banner    = $('#topBanner');
-  const imgEl     = $('#img');
-  const vidEl     = $('#vid');
-  const bar       = $('#bar');
-  const scorePill = $('#scorePill');
-  const stepPill  = $('#stepPill');
-  const toast     = $('#toast');
-  const flash     = $('#flash');
-  const signal    = $('#signal');
-  const oxWrap    = $('#ox');
-  const oxVal     = $('#oxVal');
-  const timerWrap = $('#timer');
-  const sceneTag  = $('#sceneTag');
+  $('#y').textContent = new Date().getFullYear();
+  $('#restartBtn').addEventListener('click', init);
 
-  $('#restart').addEventListener('click', startGame);
-
-  /* ---------- INLINE “PNG” SCENES (SVG data URIs) ---------- */
-  function sceneURI(title, subtitle, tag){
-    const svg = `
-    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'>
-      <defs>
-        <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-          <stop offset='0' stop-color='#0b1220'/>
-          <stop offset='1' stop-color='#0e1628'/>
-        </linearGradient>
-        <filter id='s' x='-20%' y='-20%' width='140%' height='140%'>
-          <feDropShadow dx='0' dy='10' stdDeviation='12' flood-color='rgba(0,0,0,.35)'/>
-        </filter>
-      </defs>
-      <rect width='1200' height='800' fill='url(#g)'/>
-      <rect x='30' y='30' rx='22' ry='22' width='1140' height='740' fill='rgba(255,255,255,.03)'
-            stroke='rgba(255,255,255,.10)' filter='url(#s)'/>
-      <text x='60' y='140' fill='#c7d2fe' font-size='72' font-weight='800' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif'>
-        ${title.replace(/&/g,'&amp;')}
-      </text>
-      <text x='60' y='210' fill='#94a3b8' font-size='34' font-weight='700' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif'>
-        ${subtitle.replace(/&/g,'&amp;')}
-      </text>
-      ${tag ? `<rect x='1000' y='680' rx='10' ry='10' width='140' height='48' fill='rgba(24,35,54,.8)' stroke='rgba(255,255,255,.12)'/>
-               <text x='1018' y='712' fill='#cbd5e1' font-size='24' font-weight='700'
-                     font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif'>${tag}</text>` : '' }
-      <!-- simple decorative shapes -->
-      <circle cx='1080' cy='140' r='70' fill='rgba(96,165,250,.14)'/>
-      <rect x='930' y='240' rx='10' ry='10' width='180' height='18' fill='rgba(34,211,238,.18)'/>
-    </svg>`;
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  function setBanner(text, color){
+    banner.textContent = text || '';
+    banner.hidden = !text;
+    banner.style.color = color || '';
   }
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add('echo-show');
+    clearTimeout(toast._t); toast._t = setTimeout(()=>toastEl.classList.remove('echo-show'), 1100);
+  }
+  function log(line){ state.log.push(line); logEl.innerHTML = state.log.map(x=>'• '+x).join('<br>'); }
 
-  /* ---------- DATA (one complete playable case) ---------- */
-
-  // Case flags mirror ASA triggers for awake approach
-  const DAA_CASES = [
-    {
-      id: "obese_osa_abscess",
-      vignette: "BMI 42, OSA. Peritonsillar abscess, trismus 2 cm, full stomach. High risk of aspiration and difficult mask/intubation.",
-      flags: { diffMask:true, diffIntub:true, aspiration:true, noApnea:true },
-      start: "decide_awake"
-    }
-  ];
-
-  const SCENES = {
-    decide_awake : sceneURI("Awake or Asleep?", "Choose the initial approach", "start"),
-    awake_method : sceneURI("Choose Awake Technique", "FOI / Video Laryngoscopy / Combination", "awake"),
-    topicalize   : sceneURI("Topicalization", "Atomize, spray, nerve blocks — prep well", "prep"),
-    awake_try    : sceneURI("Awake Intubation Attempts", "Limit attempts; escalate early", "attempts"),
-    induce_start : sceneURI("Induction & Preoxygenation", "Pick an interface; protect oxygenation", "induce"),
-    sga_rescue   : sceneURI("SGA Rescue", "Re-establish ventilation & oxygenation", "rescue"),
-    cico         : sceneURI("CICO Pathway", "Cannot intubate / cannot oxygenate", "CICO"),
-    tube_ok      : sceneURI("Tube in Place", "Capnography confirmed; secure tube", "success"),
-    extubation   : sceneURI("Extubation Strategy", "Plan for the high-risk airway", "plan"),
-    finish       : sceneURI("Case Complete", "Review choices & learning points", "done")
-  };
+  /* ---------- state and graph ---------- */
+  let state;
 
   const NODES = {
-    decide_awake: {
-      type: "decision",
-      title: "Initial approach",
-      prompt: "Awake intubation vs. Induce anesthesia?",
-      scene: "decide_awake",
-      options: [
-        { label:"Awake intubation", next:"awake_method", score:+2,
-          rationale:"Guideline-concordant with predicted difficult ventilation/intubation or aspiration risk." },
-        { label:"Induce anesthesia", next:"induce_preox", score:-2, hypox:+0.4,
-          rationale:"Higher risk of loss of airway in this case." }
-      ]
+    // PRE-INTUBATION SCREEN
+    precheck: {
+      title: "Pre-intubation screen",
+      prompt: "Answer each question (ASA 2022). An awake approach is recommended if any are YES.",
+      type: "screen",
+      questions: [
+        "Suspected difficult laryngoscopy?",
+        "Suspected difficult ventilation with face mask/SGA?",
+        "Significant increased risk of aspiration?",
+        "Increased risk of rapid desaturation?",
+        "Suspected difficult emergency invasive airway?"
+      ],
+      next: (flags)=>{
+        const anyYes = flags.some(Boolean);
+        return anyYes ? "awake_attempt" : "asleep_attempt";
+      }
     },
 
-    awake_method: {
-      type: "decision",
-      title: "Awake technique",
-      prompt: "Pick a method (topicalize first).",
-      scene: "awake_method",
-      options: [
-        { label:"Flexible scope (FOI)",    next:"skill_topicalize", meta:{tech:"FOI"} },
-        { label:"Video laryngoscope (VL)", next:"skill_topicalize", meta:{tech:"VL"} },
-        { label:"Combined VL + FOI",       next:"skill_topicalize", meta:{tech:"Combo"} }
-      ]
-    },
-
-    skill_topicalize: {
-      type: "skill",
-      mini: "topicalize",
-      scene: "topicalize",
-      nextOnDone: "awake_attempt"
-    },
-
+    // AWAKE PATH
     awake_attempt: {
+      title: "Intubation attempt with patient AWAKE",
+      prompt: "Limit attempts; consider calling for help.",
       type: "attempt",
-      scene: "awake_try",
-      title: "Awake intubation",
-      limit: 2,                       // suggest change after 1–2 attempts
-      apneaDrop: 0.12,                // awake — small O2 drift
-      successNext: "tube_confirm",
-      failOptions: [
-        { label:"Change something (position/adjunct)", next:"awake_attempt", score:+1 },
-        { label:"Convert to SGA rescue", next:"sga", score:0 },
-        { label:"Call for help", effect:"help", next:"awake_attempt", score:+1 },
-        { label:"CICO pathway", next:"cico", score:-2 }
-      ]
+      onSuccess: "success",
+      onFail: "vent_check_awake"
     },
-
-    induce_preox: {
-      type: "decision",
-      title: "Preoxygenation before induction",
-      prompt: "Choose interface (affects hypoxemia rate).",
-      scene: "induce_start",
+    vent_check_awake: {
+      title: "Post-attempt: ventilation check",
+      prompt: "Mask ventilation adequate as confirmed by CO₂?",
+      type: "choice",
       options: [
-        { label:"Tight mask 3–5 min", small:"best", next:"induce_attempt", hypox:-0.35, score:+2 },
-        { label:"HFNC 60 L/min", small:"good", next:"induce_attempt", hypox:-0.28, score:+1 },
-        { label:"Nasal cannula 2–6 L/min", small:"limited", next:"induce_attempt", hypox:-0.15, score:0 },
-        { label:"Skip preoxygenation", small:"risky", next:"induce_attempt", hypox:+0.2, score:-2 }
+        { label:"Yes — adequate", next:"non_emergency_path" },
+        { label:"No — not adequate", next:"sga_consider" }
       ]
     },
 
-    induce_attempt: {
+    // AFTER-INDUCTION PATH
+    asleep_attempt: {
+      title: "Intubation attempt AFTER induction of GA",
+      prompt: "Limit attempts; consider calling for help.",
       type: "attempt",
-      scene: "awake_try",
-      title: "Asleep intubation",
-      limit: 2,
-      apneaDrop: 0.55,                // asleep – faster O2 fall
-      successNext: "tube_confirm",
-      failOptions: [
-        { label:"Two-hand mask + adjuncts", effect:"oxygenate", next:"induce_attempt", score:+1 },
-        { label:"SGA rescue", next:"sga" },
-        { label:"Call for help", effect:"help", next:"induce_attempt" },
-        { label:"CICO pathway", next:"cico" }
-      ]
+      onSuccess: "success",
+      onFail: "vent_check_asleep"
     },
-
-    sga: {
-      type: "decision",
-      title: "SGA rescue",
-      prompt: "Ventilation achieved with SGA?",
-      scene: "sga_rescue",
+    vent_check_asleep: {
+      title: "Post-attempt: ventilation check",
+      prompt: "Mask ventilation adequate as confirmed by CO₂?",
+      type: "choice",
       options: [
-        { label:"Yes — oxygenating", next:"after_sga", score:+2, effect:"oxygenate" },
-        { label:"No — cannot ventilate", next:"cico", score:-2 }
+        { label:"Yes — adequate", next:"non_emergency_path" },
+        { label:"No — not adequate", next:"sga_consider" }
       ]
     },
 
-    after_sga: {
-      type: "decision",
-      title: "Oxygenation re-established",
-      prompt: "Best next step?",
-      scene: "sga_rescue",
+    // COMMON BRANCHES
+    sga_consider: {
+      title: "Consider/attempt supraglottic airway",
+      prompt: "SGA ventilation adequate?",
+      type: "choice",
       options: [
-        { label:"Wake the patient", next:"finish", score:+2 },
-        { label:"Intubate through SGA", next:"tube_confirm", score:+1 },
-        { label:"Remove SGA and try DL again", next:"induce_attempt", score:-2 }
+        { label:"Yes — adequate", next:"non_emergency_path" },
+        { label:"No — cannot ventilate", next:"emergency_path" }
       ]
     },
 
-    tube_confirm: {
-      type: "info",
-      title: "Tube placed",
-      prompt: "Confirm with capnography, secure tube, and plan extubation.",
-      scene: "tube_ok",
-      next: "extubation"
+    non_emergency_path: {
+      title: "Non-emergency pathway",
+      prompt: "Ventilation adequate but intubation unsuccessful.",
+      type: "options",
+      items: [
+        { label:"Limit attempts & consider AWAKENING the patient", effect:"score:+2", next:"finish_awaken" },
+        { label:"Attempt ALTERNATIVE intubation approach", effect:"attempt", next:"alt_attempt" },
+        { label:"Proceed to INVASIVE airway (elective)", effect:"score:+1", next:"invasive_success" }
+      ],
+      note: "Keep oxygenation safe; reassess feasibility of options."
     },
 
-    extubation: {
-      type: "decision",
-      title: "Extubation strategy",
-      prompt: "High-risk airway. Choose a plan:",
-      scene: "extubation",
-      options: [
-        { label:"Awake over airway exchange catheter + monitored area", score:+2, next:"finish" },
-        { label:"Deep extubation in OR without plan", score:-2, next:"finish" }
+    alt_attempt: {
+      title: "Alternative intubation attempt",
+      prompt: "Change device/operator/adjuncts. Limit attempts.",
+      type: "attempt",
+      onSuccess: "success",
+      onFail: "non_emergency_path"
+    },
+
+    emergency_path: {
+      title: "EMERGENCY pathway",
+      prompt: "LIMIT ATTEMPTS & BE AWARE OF THE PASSAGE OF TIME — CALL FOR HELP — Prepare for emergency invasive access.",
+      type: "options",
+      items: [
+        { label:"Attempt alternative intubation approaches WHILE PREPARING for invasive access", effect:"attemptFast", next:"emerg_try" },
+        { label:"Proceed to EMERGENCY invasive airway NOW", effect:"score:+3", next:"invasive_success" }
       ]
     },
 
-    cico: {
-      type: "timed",
-      seconds: 20,
-      apneaDrop: 0.9,
-      steps: ["Call help","100% O₂","Attempt SGA","Front-of-neck access"],
-      scene: "cico",
-      successNext: "finish",
-      failNext: "failure"
+    emerg_try: {
+      title: "Emergency alternative attempt",
+      prompt: "Single brief attempt while preparing for front-of-neck access.",
+      type: "attempt",
+      onSuccess: "success",
+      onFail: "invasive_success"
     },
 
-    finish:  { type:"end", scene:"finish", outcome:"success"  },
-    failure: { type:"end", scene:"finish", outcome:"hypoxemia"}
+    // ENDINGS
+    success: {
+      title: "SUCCESS",
+      prompt: "Tube placed and confirmed by capnography. Secure tube. Plan extubation.",
+      type: "end",
+      outcome: "ok"
+    },
+    finish_awaken: {
+      title: "AWAKENED PATIENT",
+      prompt: "Non-emergency path completed safely. Re-plan or postpone the case.",
+      type: "end",
+      outcome: "ok"
+    },
+    invasive_success: {
+      title: "INVASIVE AIRWAY",
+      prompt: "Emergency/elective invasive airway performed successfully.",
+      type: "end",
+      outcome: "ok"
+    }
   };
 
-  /* ---------- ENGINE ---------- */
-
-  const RNG = (seed=Date.now()%2147483647)=>()=> (seed=seed*48271%2147483647)/2147483647;
-
-  let state, tick=null, rng=null, timer=null;
-
-  function startGame(){
+  /* ---------- engine ---------- */
+  function init(){
     state = {
-      case: DAA_CASES[0],
-      node: DAA_CASES[0].start,
+      node: 'precheck',
       score: 0,
-      steps: 0,
-      spo2: 100,
-      hypox: 0.35,         // baseline fall per second during apnea
-      apnea: false,
-      help: false,
-      attempts: {},
-      meta: {}
+      attempts: 0,
+      log: []
     };
-    rng = RNG();
-    oxWrap.hidden = false;
-    timerWrap.hidden = true;
-    sceneTag.hidden = true;
     render();
   }
 
-  function setBanner(text,color){
-    banner.textContent = text || "";
-    banner.hidden = !text;
-    banner.style.color = color || "";
+  function setProgress(){
+    const steps = Math.min(100, Math.round(state.attempts*10 + state.score));
+    bar.style.inset = `0 ${Math.max(0,100-steps)}% 0 0`;
+    scoreEl.textContent = `Score: ${state.score}`;
+    attemptsEl.textContent = `Attempts: ${state.attempts}`;
+    stepEl.textContent = `Step ${state.log.length+1}`;
   }
 
-  function showScene(key){
-    const src = SCENES[key] || SCENES.decide_awake;
-    imgEl.style.display = '';
-    vidEl.style.display = 'none';
-    imgEl.src = src;
-    sceneTag.hidden = false;
-    sceneTag.textContent = key.replace(/_/g,' ');
-  }
+  function addScore(n){ state.score += n; setProgress(); }
 
   function render(){
     const node = NODES[state.node];
     if (!node) return;
-
-    state.steps++;
-    updateMeta();
-    setBanner(node.title ? node.title + " — " + (node.prompt||"") : (node.prompt||""), "#e2e8f0");
-    showScene(node.scene);
-
-    // stop timers
-    stopApnea();
-    stopTimer();
-
     answers.innerHTML = '';
+    setProgress();
 
-    if(node.type === 'decision'){
-      answers.className = 'echo-answers daa-options';
-      node.options.forEach((opt,i)=>{
+    // header banner
+    setBanner(`${node.title} — ${node.prompt||''}`, '#e2e8f0');
+
+    if (node.type === 'screen'){
+      const box = document.createElement('div');
+      box.style.padding='12px';
+      box.innerHTML = `<p class="tiny" style="color:#cbd5e1;margin:.25rem 0 .75rem">
+        Check <span class="note">YES</span> for any risk. Awake approach recommended if any are YES.</p>`;
+      const flags = new Array(node.questions.length).fill(false);
+
+      node.questions.forEach((q,i)=>{
+        const row = document.createElement('div');
+        row.className = 'algo-grid';
+        row.innerHTML = `
+          <button class="algo-btn" id="y${i}"><strong>YES</strong><br><small>${q}</small></button>
+          <button class="algo-btn" id="n${i}"><strong>NO</strong><br><small>${q}</small></button>`;
+        answers.appendChild(row);
+        $('#y'+i,row).addEventListener('click', ()=>{ flags[i]=true; toast('Marked YES'); });
+        $('#n'+i,row).addEventListener('click', ()=>{ flags[i]=false; toast('Marked NO'); });
+      });
+
+      const goBtn = document.createElement('button');
+      goBtn.className = 'echo-btn';
+      goBtn.textContent = 'Continue';
+      goBtn.addEventListener('click', ()=>{
+        const next = node.next(flags);
+        const anyYes = flags.some(Boolean);
+        log(anyYes ? 'Precheck → Awake approach recommended' : 'Precheck → After-induction approach reasonable');
+        state.node = next; render();
+      });
+      answers.appendChild(goBtn);
+    }
+
+    if (node.type === 'choice'){
+      const grid = document.createElement('div');
+      grid.className = 'algo-grid';
+      node.options.forEach(opt=>{
         const b = document.createElement('button');
-        b.className = 'daa-btn';
-        b.innerHTML = `<strong>${opt.label}</strong>${opt.small?`<small>${opt.small}</small>`:''}`;
+        b.className='algo-btn';
+        b.innerHTML = `<strong>${opt.label}</strong>`;
         b.addEventListener('click', ()=>{
-          applyEffects(opt);
-          addScore(opt.score||0, opt.rationale);
-          go(opt.next, opt.meta);
+          log(node.title + ': ' + opt.label);
+          state.node = opt.next; render();
         });
-        answers.appendChild(b);
+        grid.appendChild(b);
       });
-      document.onkeydown = (e)=>{
-        const k = +e.key;
-        if(k>=1 && k<=node.options.length) answers.children[k-1].click();
-      };
+      answers.appendChild(grid);
     }
 
-    if(node.type === 'skill' && node.mini === 'topicalize'){
-      answers.className = 'echo-answers';
-      renderTopicalize(node);
+    if (node.type === 'options'){
+      const grid = document.createElement('div');
+      grid.className = 'algo-grid';
+      if (node.note){
+        const p = document.createElement('p');
+        p.className = 'tiny'; p.style.color='#cbd5e1'; p.style.margin='0 0 6px';
+        p.textContent = node.note; answers.appendChild(p);
+      }
+      node.items.forEach(opt=>{
+        const b = document.createElement('button');
+        b.className='algo-btn';
+        b.innerHTML = `<strong>${opt.label}</strong>`;
+        b.addEventListener('click', ()=>{
+          log(node.title + ': ' + opt.label);
+          applyEffect(opt.effect);
+          state.node = opt.next; render();
+        });
+        grid.appendChild(b);
+      });
+      answers.appendChild(grid);
     }
 
-    if(node.type === 'attempt'){
-      answers.className = 'echo-answers';
-      renderAttempt(node);
+    if (node.type === 'attempt'){
+      const wrap = document.createElement('div');
+      wrap.className = 'algo-grid';
+      const success = document.createElement('button');
+      success.className='algo-btn';
+      success.innerHTML = `<strong>SUCCESS</strong><br><small>Capnography confirmed</small>`;
+      success.addEventListener('click', ()=>{
+        addScore(+2); log(node.title + ': Success');
+        state.node = node.onSuccess; render();
+      });
+
+      const fail = document.createElement('button');
+      fail.className='algo-btn';
+      fail.innerHTML = `<strong>FAIL</strong><br><small>Couldn’t place tube</small>`;
+      fail.addEventListener('click', ()=>{
+        state.attempts += 1; setProgress();
+        if (state.attempts >= 2){ setBanner('Limit attempts — consider calling for help.', '#f59e0b'); }
+        log(node.title + ': Fail');
+        state.node = node.onFail; render();
+      });
+
+      wrap.appendChild(success); wrap.appendChild(fail);
+      answers.appendChild(wrap);
+
+      // helper row
+      const helper = document.createElement('div');
+      helper.className='chips';
+      helper.innerHTML = `
+        <span class="chip">Reposition / optimize external laryngeal manipulation</span>
+        <span class="chip">Change device/operator</span>
+        <span class="chip">Adjuncts: bougie, stylet, ramped position</span>`;
+      answers.appendChild(helper);
     }
 
-    if(node.type === 'timed'){
-      answers.className = 'echo-answers';
-      renderTimedCICO(node);
-    }
-
-    if(node.type === 'info'){
-      answers.className = 'echo-answers';
-      const d = document.createElement('div');
-      d.style.padding = '14px';
-      d.innerHTML = `<p style="color:#cbd5e1">Confirm with continuous capnography, secure the tube, and document airway difficulty.</p>
-      <button class="echo-btn" type="button">Continue</button>`;
-      d.querySelector('button').addEventListener('click', ()=> go(node.next));
-      answers.appendChild(d);
-    }
-
-    if(node.type === 'end'){
-      answers.className = 'echo-answers';
-      const d = document.createElement('div');
-      d.style.padding = '18px';
-      const ok = node.outcome === 'success';
-      d.innerHTML = `<h2 style="color:${ok?'#34d399':'#f87171'};margin:.2rem 0 .6rem;">${ok?'Case complete 🎉':'Case failed'}</h2>
-        <p style="color:#cbd5e1">Score: <strong>${state.score}</strong>. ${ok?'Nice work — guideline-concordant path.':'SpO₂ fell critically before rescue.'}</p>
+    if (node.type === 'end'){
+      const ok = node.outcome === 'ok';
+      const box = document.createElement('div');
+      box.style.padding='14px';
+      box.innerHTML = `
+        <h2 class="${ok?'ok':'danger'}" style="margin:.2rem 0 .6rem">${node.title}</h2>
+        <p style="color:#cbd5e1">${node.prompt}</p>
         <button class="echo-btn" type="button">Play again</button>`;
-      d.querySelector('button').addEventListener('click', startGame);
-      answers.appendChild(d);
+      $('button',box).addEventListener('click', init);
+      answers.appendChild(box);
     }
   }
 
-  function go(next, meta={}){
-    state.meta = Object.assign({}, state.meta, meta||{});
-    state.node = next;
-    render();
-  }
-
-  function addScore(n, rationale){
-    if (!n) { if (rationale) setBanner(rationale, '#93c5fd'); return; }
-    state.score += n;
-    scorePill.textContent = `Score: ${state.score}`;
-    setBanner((n>0?'✅':'❌') +' '+ (rationale|| (n>0?'Good choice':'Risky choice')), n>0?'#34d399':'#f87171');
-    flashFeedback(n>0);
-  }
-
-  function flashFeedback(ok){
-    flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)' : 'rgba(248,113,113,.28)');
-    flash.classList.add('show');
-    signal.textContent = ok ? '✔' : '✖';
-    signal.classList.toggle('ok', ok);
-    signal.classList.toggle('no', !ok);
-    signal.classList.add('show');
-    setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); }, 650);
-  }
-
-  function updateMeta(){
-    stepPill.textContent = `Case 1`;
-    bar.style.inset = `0 ${Math.max(0,100 - state.steps*8)}% 0 0`;
-    updateOx();
-  }
-
-  /* ---------- Oxygen / timers ---------- */
-
-  function updateOx(){
-    oxVal.textContent = `SpO₂ ${Math.round(state.spo2)}%`;
-    oxWrap.classList.toggle('warn', state.spo2 < 92 && state.spo2 >= 85);
-    oxWrap.classList.toggle('danger', state.spo2 < 85);
-  }
-  function startApnea(dropPerSec){
-    state.apnea = true;
-    stopApnea();
-    tick = setInterval(()=>{
-      state.spo2 = Math.max(60, state.spo2 - (state.hypox + dropPerSec));
-      updateOx();
-      if (state.spo2 <= 75 && NODES[state.node]?.type!=='timed'){
-        // strongly nudge toward CICO
-        setBanner('SpO₂ critical — secure oxygenation or proceed to CICO!', '#f87171');
-      }
-      if (state.spo2 <= 60){
-        // fail the case
-        stopApnea(); stopTimer();
-        state.node = 'failure'; render();
-      }
-    }, 1000);
-  }
-  function stopApnea(){ if (tick) clearInterval(tick); tick = null; state.apnea=false; }
-  function oxygenateBoost(amount=0.35){
-    // “oxygenate” lowers hypox rate temporarily and bumps saturation a bit
-    state.hypox = Math.max(0.1, state.hypox - amount*0.7);
-    state.spo2 = Math.min(100, state.spo2 + 4 + amount*10);
-    updateOx();
-  }
-
-  function startTimer(seconds, onEnd){
-    stopTimer();
-    let t = seconds;
-    timerWrap.hidden = false;
-    timerWrap.textContent = `${t}s`;
-    timer = setInterval(()=>{
-      t--; timerWrap.textContent = `${t}s`;
-      if (t<=0){ stopTimer(); onEnd?.(); }
-    },1000);
-  }
-  function stopTimer(){ if (timer) clearInterval(timer); timer=null; timerWrap.hidden = true; }
-
-  /* ---------- Renderers ---------- */
-
-  function renderTopicalize(node){
-    setBanner('Hold to atomize until the bar fills — better prep → higher success.', '#93c5fd');
-    const box = document.createElement('div');
-    box.style.padding='14px';
-    box.innerHTML = `
-      <div style="height:14px;border-radius:999px;border:1px solid rgba(255,255,255,.15); overflow:hidden;background:rgba(255,255,255,.06)">
-        <div id="fill" style="height:100%;width:0;background:linear-gradient(90deg,#60a5fa,#22d3ee);"></div>
-      </div>
-      <div class="attempt-row" style="margin-top:12px;">
-        <button id="hold" class="attempt-cta">Hold to Spray</button>
-        <span class="chip">Goal ≥ 80%</span>
-      </div>`;
-    answers.appendChild(box);
-    const fill = $('#fill',box), hold = $('#hold',box);
-
-    let pct=0, int=null, good=false;
-    const step = ()=>{ pct = Math.min(100, pct+5); fill.style.width = pct+'%'; good = pct>=80; };
-
-    hold.addEventListener('mousedown', ()=>{ clearInterval(int); int=setInterval(step,90); });
-    hold.addEventListener('touchstart', ()=>{ clearInterval(int); int=setInterval(step,90); }, {passive:true});
-    const release = ()=>{
-      clearInterval(int);
-      setBanner(good?'✅ Airway well topicalized':'⚠️ Suboptimal topicalization', good?'#34d399':'#f59e0b');
-      state.meta.topicalize = good ? 1 : 0.4;
-      go(node.nextOnDone);
-    };
-    ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>hold.addEventListener(ev, release));
-  }
-
-  function attemptChance(tech){
-    const base = tech==='FOI' ? 0.55 : tech==='VL' ? 0.6 : 0.7; // combo best
-    const topi = state.meta.topicalize ?? 1;
-    const help = state.help ? 0.08 : 0;
-    aconst = 0; // placeholder to keep minifier happy
-    const tries = state.attempts[tech]||0;
-    const penalty = Math.max(0, (tries-1)*0.08);
-    return Math.min(0.93, base*topi + help - penalty);
-  }
-
-  function renderAttempt(node){
-    const tech = state.meta.tech || (node === NODES.induce_attempt ? 'VL' : 'FOI');
-    const tries = state.attempts[tech] || 0;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'attempt-wrap';
-    wrap.innerHTML = `
-      <div class="attempt-row">
-        <button id="tryBtn" class="attempt-cta">Attempt with ${tech}</button>
-        <span class="chip">Attempts: ${tries}</span>
-        <span class="chip">Limit: ${node.limit}</span>
-        <span class="chip ${state.help?'':'hidden'}" id="helpChip">Help on scene</span>
-      </div>
-      <div id="after" class="daa-options"></div>`;
-    answers.appendChild(wrap);
-
-    // during attempts we are apneic (awake drop is small; asleep is faster)
-    startApnea(node.apneaDrop);
-
-    $('#tryBtn',wrap).addEventListener('click', ()=>{
-      const p = attemptChance(tech);
-      const ok = rng() < p;
-      state.attempts[tech] = (state.attempts[tech]||0) + 1;
-
-      if (ok){
-        stopApnea();
-        addScore(+2, "Tube placed.");
-        go(node.successNext);
-      }else{
-        addScore(-1, "Failed attempt. Change something or escalate.");
-        const aft = $('#after',wrap);
-        aft.innerHTML = '';
-        node.failOptions.forEach(opt=>{
-          const b = document.createElement('button');
-          b.className='daa-btn';
-          b.innerHTML = `<strong>${opt.label}</strong>`;
-          b.addEventListener('click', ()=>{
-            applyEffects(opt);
-            go(opt.next);
-          });
-          aft.appendChild(b);
-        });
-        // soft nudge when over limit
-        if (state.attempts[tech] >= node.limit){
-          setBanner('Attempt limit reached — change device/operator/adjunct or escalate.', '#f59e0b');
-        }
-      }
-    });
-  }
-
-  function renderTimedCICO(node){
-    setBanner('CICO pathway — complete steps quickly while SpO₂ is falling.', '#f87171');
-    startApnea(node.apneaDrop);
-    startTimer(node.seconds, ()=>{ go('failure'); });
-
-    const row = document.createElement('div');
-    row.style.padding='10px';
-    const steps = node.steps.slice();
-    const done = [];
-
-    const stepsWrap = document.createElement('div');
-    stepsWrap.className = 'cico-steps';
-    steps.forEach((s,i)=>{
-      const span = document.createElement('span');
-      span.className = 'cico-step';
-      span.textContent = `${i+1}. ${s}`;
-      stepsWrap.appendChild(span);
-    });
-
-    const buttons = document.createElement('div');
-    buttons.className = 'daa-options';
-    steps.forEach((s,i)=>{
-      const b = document.createElement('button');
-      b.className='daa-btn';
-      b.innerHTML = `<strong>${s}</strong>`;
-      b.addEventListener('click', ()=>{
-        if (i !== done.length) { setBanner('Do the steps in order.', '#f59e0b'); return; }
-        done.push(s);
-        stepsWrap.children[i].classList.add('done');
-        if (s.includes('O₂')) oxygenateBoost(0.6);
-        if (done.length === steps.length){
-          stopApnea(); stopTimer();
-          addScore(+3, 'Front-of-neck access performed.');
-          go(node.successNext);
-        }
-      });
-      buttons.appendChild(b);
-    });
-
-    row.appendChild(stepsWrap);
-    row.appendChild(buttons);
-    answers.appendChild(row);
-  }
-
-  function applyEffects(opt){
-    if (typeof opt.hypox === 'number'){
-      state.hypox = Math.max(0.05, state.hypox + opt.hypox);
+  function applyEffect(eff){
+    if (!eff) return;
+    if (eff.startsWith('score:')){
+      const n = parseInt(eff.split(':')[1],10)||0;
+      addScore(n);
     }
-    if (opt.effect === 'help') { state.help = true; }
-    if (opt.effect === 'oxygenate'){ oxygenateBoost(); stopApnea(); }
-    if (typeof opt.score === 'number') addScore(opt.score, opt.rationale);
+    if (eff === 'attempt'){ state.attempts += 1; setProgress(); if (state.attempts >= 2) setBanner('Limit attempts — consider calling for help.', '#f59e0b'); }
+    if (eff === 'attemptFast'){ state.attempts += 1; addScore(-1); setProgress(); setBanner('Emergency: keep attempts brief; prepare invasive access.', '#f87171'); }
   }
 
-  /* ---------- START ---------- */
-  startGame();
+  /* start */
+  init();
   </script>
 </body>
 </html>
