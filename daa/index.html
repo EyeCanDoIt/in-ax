@@ -11,34 +11,57 @@ filename: daa
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Difficult Airway Algorithm — Game</title>
 
-  <!-- Site styles you already have -->
+  <!-- Your site styles -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../assets/css/echo.css">
 
   <style>
+    /* Center the whole Q/A area in a big card */
+    .echo-answers{
+      display:flex; align-items:center; justify-content:center;
+      min-height: 480px; padding: 0 14px 18px;
+    }
+    .qa-card{
+      width:min(980px, 100%);
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 18px 40px rgba(0,0,0,.25);
+    }
+    .scenario{ font-size:1.15rem; color:#dbe7ff; margin:0 0 .35rem; font-weight:800; }
+    .sub{ color:#9fb1d1; margin:0 0 1rem; font-size:.95rem }
+    .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+
+    .opt{
+      border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
+      color:#e6edf9; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer;
+      transition:.16s ease transform,.16s ease border-color,.16s ease background,.16s ease opacity;
+    }
+    .opt:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.08) }
+    .opt:disabled{ opacity:.8; cursor:default }
+    .opt.correct{ outline:2px solid #34d399 }
+    .opt.wrong{ outline:2px solid #f87171 }
+
+    .explain{
+      color:#cbd5e1; background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      padding:10px 12px; border-radius:10px; margin-top:12px
+    }
+
     .lives-pill{
       display:inline-flex; align-items:center; gap:.5rem;
       padding:.35rem .7rem; border-radius:999px;
       border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
       color:#e6edf9; font-weight:800;
     }
-    .heart{ filter: drop-shadow(0 0 8px rgba(239,68,68,.35)); font-size:1.05rem }
-    .muted{ color:#9fb1d1 }
-    .scenario{ font-size:1.15rem; color:#d8e2f6; margin:0 0 .25rem }
-    .sub{ color:#9fb1d1; margin:0 0 .5rem; font-size:.95rem }
-    .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
-    .opt{
-      border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
-      color:#e6edf9; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer;
-      transition:.16s ease transform,.16s ease border-color,.16s ease background;
-    }
-    .opt:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.08) }
-    .opt.correct{ outline:2px solid #34d399 }
-    .opt.wrong{ outline:2px solid #f87171 }
-    .explain{ color:#cbd5e1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
-      padding:10px 12px; border-radius:10px; margin-top:10px }
+    .heart{ filter: drop-shadow(0 0 8px rgba(239,68,68,.35)); font-size:1.05rem; letter-spacing:.1rem }
+
     .kbd{ font:600 .85rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; background:#0b1220; border:1px solid rgba(255,255,255,.15);
       border-bottom-width:2px; padding:.12rem .42rem; border-radius:6px; color:#cfe1ff }
+
+    /* Keep the stage compact since we don't show media here */
+    .echo-image-wrap{ min-height:0; padding:0 }
   </style>
 </head>
 <body class="echo">
@@ -57,7 +80,7 @@ filename: daa
           <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
         </nav>
 
-        <div class="subtitle">Random scenarios • 3 lives • pick the next best step</div>
+        <div class="subtitle">Random scenarios • 3 lives • pick the next best step (ASA 2022)</div>
       </div>
     </div>
   </header>
@@ -80,7 +103,7 @@ filename: daa
         <div id="banner" class="echo-topbanner" hidden></div>
 
         <div class="echo-stage">
-          <div class="echo-image-wrap" style="min-height:0;padding:0">
+          <div class="echo-image-wrap">
             <div class="muted" style="padding:8px 0">
               Shortcuts: <span class="kbd">1–4</span> answer · <span class="kbd">R</span> restart
             </div>
@@ -106,7 +129,7 @@ filename: daa
   </footer>
 
   <script>
-  // ---------- tiny helpers ----------
+  // ---------- helpers ----------
   const $ = (s, el=document)=>el.querySelector(s);
   const answers = $('#answers');
   const banner  = $('#banner');
@@ -122,148 +145,104 @@ filename: daa
   function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('echo-show'), 1100); }
   const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b };
 
-  // ---------- scenario bank (ASA 2022 key decisions) ----------
+  // ---------- scenario bank ----------
   const SCENARIOS = [
-    {
-      id:'dl_difficult',
-      scenario:'Pre-intubation: Suspected difficult laryngoscopy.',
-      options:[
-        {t:'Choose an AWAKE intubation strategy', ok:true, why:'Any YES factor (e.g., difficult laryngoscopy) can justify an awake approach.'},
-        {t:'Induce GA first and proceed to DL'},
-        {t:'Skip preoxygenation and intubate quickly'},
-        {t:'Start with mask ventilation to test difficulty'}
-      ]
-    },
-    {
-      id:'mask_diff',
-      scenario:'Pre-intubation: Suspected difficult ventilation with mask/SGA.',
-      options:[
-        {t:'Choose an AWAKE intubation strategy', ok:true, why:'If ventilation may fail after induction, keep spontaneous breathing (awake).'},
-        {t:'Rapid sequence induction then DL'},
-        {t:'Proceed to elective tracheostomy immediately'},
-      ]
-    },
-    {
-      id:'aspiration_risk',
-      scenario:'Pre-intubation: Significant increased risk of aspiration (full stomach).',
-      options:[
-        {t:'Choose an AWAKE intubation strategy', ok:true, why:'Awake intubation allows airway reflexes and continuous oxygenation.'},
-        {t:'Deep anesthesia and mask ventilation'},
-        {t:'SGA first, then intubate through it routinely'}
-      ]
-    },
-    {
-      id:'rapid_desat',
-      scenario:'Pre-intubation: Increased risk of rapid desaturation.',
-      options:[
-        {t:'Consider AWAKE intubation (or optimize oxygenation if asleep)', ok:true, why:'High desaturation risk often favors an awake approach.'},
-        {t:'Skip preoxygenation to save time'},
-        {t:'Try multiple DL attempts rapidly'}
-      ]
-    },
-    {
-      id:'diff_emergency_access',
-      scenario:'Pre-intubation: Suspected difficult EMERGENCY invasive airway.',
-      options:[
-        {t:'Choose an AWAKE intubation strategy', ok:true, why:'If rescue access may be difficult, avoid losing the airway under GA.'},
-        {t:'Induce GA and plan to call for help if needed'},
-        {t:'Proceed directly to elective front-of-neck access in all cases'}
-      ]
-    },
-    {
-      id:'no_flags',
-      scenario:'Pre-intubation: No major risk factors identified.',
-      options:[
-        {t:'Proceed with intubation AFTER INDUCTION with optimal preoxygenation', ok:true, why:'When screening is negative, after-induction approach is reasonable.'},
-        {t:'Mandatory awake approach for everyone'},
-        {t:'Skip capnography after tube placement'}
-      ]
-    },
-    {
-      id:'awake_fail',
-      scenario:'Awake intubation attempt FAILED.',
-      options:[
-        {t:'Assess ability to VENTILATE (mask) and oxygenate', ok:true, why:'After a failed attempt, confirm you can ventilate and maintain oxygenation.'},
-        {t:'Repeat attempts indefinitely'},
-        {t:'Immediately paralyze and try DL'}
-      ]
-    },
-    {
-      id:'asleep_fail',
-      scenario:'After induction: First intubation attempt FAILED.',
-      options:[
-        {t:'Check MASK ventilation (CO₂) and oxygenate', ok:true, why:'Limit attempts and ensure oxygenation before continuing.'},
-        {t:'Attempt DL repeatedly without reassessment'},
-        {t:'Skip to extubation plan'}
-      ]
-    },
-    {
-      id:'mask_ok',
-      scenario:'Ventilation ADEQUATE with mask (CO₂ confirmed).',
-      options:[
-        {t:'Non-emergency path: limit attempts, consider AWAKENING or ALTERNATIVE approach', ok:true, why:'When ventilation is adequate, step back and choose a safer plan.'},
-        {t:'Directly proceed to emergency front-of-neck access'},
-        {t:'Continue repeated DL attempts without limit'}
-      ]
-    },
-    {
-      id:'mask_not_ok',
-      scenario:'Mask ventilation NOT adequate.',
-      options:[
-        {t:'Consider/attempt SUPRAGLOTTIC AIRWAY', ok:true, why:'SGA is the next rescue step when mask ventilation is inadequate.'},
-        {t:'Keep trying mask only'},
-        {t:'Wake the patient immediately without oxygenation attempt'}
-      ]
-    },
-    {
-      id:'sga_ok',
-      scenario:'SGA ventilation ADEQUATE.',
-      options:[
-        {t:'Non-emergency path: wake patient OR intubate through SGA', ok:true, why:'With oxygenation restored, you can wake or proceed via SGA.'},
-        {t:'Remove SGA and retry DL repeatedly'},
-        {t:'Go to emergency invasive airway now'}
-      ]
-    },
-    {
-      id:'sga_not_ok',
-      scenario:'SGA ventilation NOT adequate (can’t ventilate).',
-      options:[
-        {t:'EMERGENCY pathway: prepare for FRONT-OF-NECK ACCESS (limit attempts, call for help)', ok:true, why:'CICO: prioritize emergency invasive access.'},
-        {t:'Try DL several more times first'},
-        {t:'Pause and reassess later without oxygenation'}
-      ]
-    },
-    {
-      id:'emerg_escalate',
-      scenario:'Emergency pathway with critical desaturation.',
-      options:[
-        {t:'Proceed to EMERGENCY INVASIVE AIRWAY (front-of-neck access)', ok:true, why:'Definitive rescue when oxygenation cannot be maintained.'},
-        {t:'Keep attempting DL briefly again'},
-        {t:'Wait for saturation to recover on its own'}
-      ]
-    },
-    {
-      id:'tube_in',
-      scenario:'Tube placed — capnography CONFIRMED.',
-      options:[
-        {t:'Secure tube and plan EXTUBATION strategy (consider AEC if high-risk)', ok:true, why:'Capnography confirmation, secure tube, then safe extubation plan.'},
-        {t:'Skip capnography; rely on chest rise'},
-        {t:'Remove the tube to check positioning'}
-      ]
-    },
-    {
-      id:'extubation_plan',
-      scenario:'High-risk airway: planning EXTUBATION.',
-      options:[
-        {t:'Awake extubation over AIRWAY EXCHANGE CATHETER with monitoring', ok:true, why:'Safer for re-intubation access and oxygenation.'},
-        {t:'Deep extubation in OR without plan'},
-        {t:'Remove the tube in PACU without monitors'}
-      ]
-    }
+    { id:'dl_difficult', scenario:'Pre-intubation: Suspected difficult laryngoscopy.', options:[
+      {t:'Choose an AWAKE intubation strategy', ok:true, why:'Any YES factor (e.g., difficult laryngoscopy) supports an awake approach.'},
+      {t:'Induce general anesthesia now and proceed to DL'},
+      {t:'Skip preoxygenation and intubate quickly'},
+      {t:'“Test” mask ventilation first under deep anesthesia'}
+    ]},
+    { id:'mask_diff', scenario:'Pre-intubation: Suspected difficult ventilation with mask/SGA.', options:[
+      {t:'Choose an AWAKE intubation strategy', ok:true, why:'If ventilation may fail after induction, maintain spontaneous breathing.'},
+      {t:'Rapid sequence induction then DL'},
+      {t:'Elective tracheostomy for all difficult airways'},
+      {t:'Give deep sedation and try DL repeatedly'}
+    ]},
+    { id:'aspiration_risk', scenario:'Pre-intubation: Significant increased risk of aspiration (full stomach).', options:[
+      {t:'Choose an AWAKE intubation strategy', ok:true, why:'Awake approach preserves protective reflexes and oxygenation.'},
+      {t:'Deep anesthesia and mask ventilation'},
+      {t:'Place SGA first in every case'},
+      {t:'Skip suction availability'}
+    ]},
+    { id:'rapid_desat', scenario:'Pre-intubation: Increased risk of rapid desaturation.', options:[
+      {t:'Consider AWAKE intubation (or aggressively optimize oxygenation if asleep)', ok:true, why:'High desat risk → awake often safer.'},
+      {t:'Skip preoxygenation to save time'},
+      {t:'Plan multiple quick DL attempts'},
+      {t:'Avoid nasal oxygen during attempts'}
+    ]},
+    { id:'diff_emergency_access', scenario:'Pre-intubation: Suspected difficult EMERGENCY invasive airway.', options:[
+      {t:'Choose an AWAKE intubation strategy', ok:true, why:'If rescue access may be difficult, avoid losing the airway under GA.'},
+      {t:'Induce GA and “see how it goes”'},
+      {t:'Always perform front-of-neck access electively'},
+      {t:'Rely on repeated DL first'}
+    ]},
+    { id:'no_flags', scenario:'Pre-intubation: No major risk factors identified.', options:[
+      {t:'Proceed with intubation AFTER INDUCTION with optimal preoxygenation', ok:true, why:'When screening is negative, after-induction approach is reasonable.'},
+      {t:'Mandatory awake approach for everyone'},
+      {t:'Skip capnography after tube placement'},
+      {t:'Avoid calling for help if difficulties arise'}
+    ]},
+    { id:'awake_fail', scenario:'Awake intubation attempt FAILED.', options:[
+      {t:'Assess ability to VENTILATE (mask) and oxygenate', ok:true, why:'After a failed attempt, confirm you can ventilate and maintain oxygenation.'},
+      {t:'Repeat attempts indefinitely'},
+      {t:'Paralyze immediately and try DL'},
+      {t:'Ignore SpO₂ and continue'}
+    ]},
+    { id:'asleep_fail', scenario:'After induction: First intubation attempt FAILED.', options:[
+      {t:'Check MASK ventilation (CO₂) and oxygenate', ok:true, why:'Limit attempts and ensure oxygenation before continuing.'},
+      {t:'Attempt DL repeatedly without reassessment'},
+      {t:'Skip to extubation plan'},
+      {t:'Disable alarms to reduce stress'}
+    ]},
+    { id:'mask_ok', scenario:'Ventilation ADEQUATE with mask (CO₂ confirmed).', options:[
+      {t:'Non-emergency path: limit attempts, consider AWAKENING or ALTERNATIVE approach', ok:true, why:'When ventilation is adequate, step back and choose a safer plan.'},
+      {t:'Go directly to emergency front-of-neck access'},
+      {t:'Continue unlimited DL attempts'},
+      {t:'Remove monitoring to simplify'}
+    ]},
+    { id:'mask_not_ok', scenario:'Mask ventilation NOT adequate.', options:[
+      {t:'Consider/attempt SUPRAGLOTTIC AIRWAY', ok:true, why:'SGA is the next rescue step when mask ventilation is inadequate.'},
+      {t:'Keep trying mask only'},
+      {t:'Wake immediately without oxygenation'},
+      {t:'Skip calling for help'}
+    ]},
+    { id:'sga_ok', scenario:'SGA ventilation ADEQUATE.', options:[
+      {t:'Non-emergency path: wake patient OR intubate through SGA', ok:true, why:'With oxygenation restored, you can wake or proceed via SGA.'},
+      {t:'Remove SGA and retry DL repeatedly'},
+      {t:'Go to emergency invasive airway now'},
+      {t:'Turn off oxygen to avoid gastric insufflation'}
+    ]},
+    { id:'sga_not_ok', scenario:'SGA ventilation NOT adequate (can’t ventilate).', options:[
+      {t:'EMERGENCY pathway: prepare for FRONT-OF-NECK ACCESS (limit attempts, call for help)', ok:true, why:'CICO: prioritize emergency invasive access.'},
+      {t:'Try DL several more times first'},
+      {t:'Pause and reassess later without oxygenation'},
+      {t:'Remove oxygen to see true baseline'}
+    ]},
+    { id:'emerg_escalate', scenario:'Emergency pathway with critical desaturation.', options:[
+      {t:'Proceed to EMERGENCY INVASIVE AIRWAY (front-of-neck access)', ok:true, why:'Definitive rescue when oxygenation cannot be maintained.'},
+      {t:'Keep attempting DL briefly again'},
+      {t:'Wait for saturation to recover on its own'},
+      {t:'Take a break and re-attempt in 10 minutes'}
+    ]},
+    { id:'tube_in', scenario:'Tube placed — capnography CONFIRMED.', options:[
+      {t:'Secure tube and plan EXTUBATION strategy (consider AEC if high-risk)', ok:true, why:'Confirm with capnography, secure tube, plan safe extubation.'},
+      {t:'Skip capnography; rely on chest rise'},
+      {t:'Remove the tube to check positioning'},
+      {t:'Ignore securing device until later'}
+    ]},
+    { id:'extubation_plan', scenario:'High-risk airway: planning EXTUBATION.', options:[
+      {t:'Awake extubation over AIRWAY EXCHANGE CATHETER with monitoring', ok:true, why:'Safer re-intubation access and oxygenation.'},
+      {t:'Deep extubation in OR without plan'},
+      {t:'Pull the tube in PACU without monitors'},
+      {t:'Ask patient to self-remove the tube'}
+    ]}
   ];
 
   // ---------- game state ----------
   let order = [], idx = 0, score = 0, lives = 3, locked = false;
+
+  function hearts(n){ return '♥'.repeat(n) + '♡'.repeat(3-n); }
 
   function init(){
     order = shuffle([...Array(SCENARIOS.length).keys()]);
@@ -276,7 +255,7 @@ filename: daa
   function updateMeta(){
     scoreEl.textContent = `Score: ${score}`;
     stepEl.textContent  = `Q ${Math.min(idx+1, SCENARIOS.length)} / ${SCENARIOS.length}`;
-    livesEl.innerHTML   = `<span class="heart">${'♥'.repeat(lives)}${'<span style="opacity:.25">'+'♥'.repeat(3-lives)+'</span>'}</span> Lives`;
+    livesEl.innerHTML   = `<span class="heart">${hearts(lives)}</span> Lives`;
     const pct = (idx/SCENARIOS.length)*100;
     bar.style.inset = `0 ${Math.max(0,100-pct)}% 0 0`;
   }
@@ -288,22 +267,23 @@ filename: daa
 
     locked = false;
     const q = SCENARIOS[ order[idx] ];
-    const box = document.createElement('div');
-    box.style.padding = '12px';
+
+    const card = document.createElement('div');
+    card.className = 'qa-card';
 
     const h = document.createElement('p');
     h.className='scenario';
     h.textContent = q.scenario;
-    box.appendChild(h);
+    card.appendChild(h);
 
     const sub = document.createElement('p');
     sub.className='sub';
     sub.textContent = 'Choose the best next step:';
-    box.appendChild(sub);
+    card.appendChild(sub);
 
     const grid = document.createElement('div');
     grid.className='grid';
-    const opts = shuffle(q.options.map((o,i)=>({ ...o, i })));
+    const opts = shuffle(q.options.map(o=>({ ...o })));
 
     opts.forEach((o,oi)=>{
       const b = document.createElement('button');
@@ -313,17 +293,16 @@ filename: daa
       grid.appendChild(b);
     });
 
-    box.appendChild(grid);
-    answers.appendChild(box);
+    card.appendChild(grid);
+    answers.appendChild(card);
 
-    // keyboard shortcuts 1–4
+    // keyboard shortcuts 1–4 + R
     document.onkeydown = (e)=>{
+      if (e.key.toLowerCase()==='r'){ init(); return; }
       if (locked) return;
       const k = +e.key;
-      if (k>=1 && k<=opts.length){
+      if (k>=1 && k<=grid.children.length){
         grid.children[k-1].click();
-      } else if (e.key.toLowerCase()==='r'){
-        init();
       }
     };
   }
@@ -331,31 +310,30 @@ filename: daa
   function choose(btn, ok, why, opts){
     if (locked) return; locked = true;
 
-    // reveal correct
     const grid = btn.parentElement;
-    [...grid.children].forEach((b,i)=>{
-      const isOK = opts[i].ok;
-      b.classList.add(isOK ? 'correct' : '');
+    // reveal correct & mark selected
+    Array.from(grid.children).forEach((b, i)=>{
+      const good = !!opts[i].ok;
+      if (good) b.classList.add('correct');
+      if (b === btn && !good) b.classList.add('wrong');
+      b.disabled = true;
     });
 
     if (ok){
-      score += 1;
+      score += 1; updateMeta();
       setBanner('✅ Correct', '#34d399');
-      showExplain(why, 'ok');
-      setTimeout(()=>{ idx++; updateMeta(); setBanner(''); renderQuestion(); }, 900);
+      showExplain(why || 'Guideline-concordant choice.');
+      setTimeout(()=>{ idx++; setBanner(''); renderQuestion(); }, 900);
     } else {
       lives -= 1; updateMeta();
       setBanner('❌ Incorrect', '#f87171');
-      showExplain(`Best next step: ${opts.find(o=>o.ok).t}. ${why||''}`, 'no');
-      if (lives <= 0){
-        setTimeout(()=> endGame(false), 900);
-      } else {
-        setTimeout(()=>{ idx++; setBanner(''); renderQuestion(); }, 1400);
-      }
+      const best = opts.find(o=>o.ok)?.t || 'See ASA 2022 pathway';
+      showExplain(`Best next step: ${best}. ${why||''}`);
+      setTimeout(()=>{ if (lives<=0) endGame(false); else { idx++; setBanner(''); renderQuestion(); } }, 1200);
     }
   }
 
-  function showExplain(text, kind){
+  function showExplain(text){
     const note = document.createElement('div');
     note.className = 'explain';
     note.textContent = text || '';
@@ -365,19 +343,20 @@ filename: daa
   function endGame(cleared){
     answers.innerHTML = '';
     const d = document.createElement('div');
-    d.style.padding = '18px';
+    d.className = 'qa-card';
     const title = cleared ? 'Nice work! 🎉' : 'Could not intubate — patient coded.';
     const color = cleared ? '#34d399' : '#f87171';
     d.innerHTML = `
       <h2 style="margin:.2rem 0 .6rem; color:${color}">${title}</h2>
-      <p class="muted">Final score: <strong>${score}</strong> / ${SCENARIOS.length}. ${cleared ? 'You completed all scenarios.' : 'Review the algorithm and try again.'}</p>
-      <button class="echo-btn" type="button">Play again</button>`;
+      <p class="sub">Final score: <strong>${score}</strong> / ${SCENARIOS.length}. ${cleared ? 'You completed all scenarios.' : 'Review the algorithm and try again.'}</p>
+      <button class="echo-btn" type="button">Play again</button>
+      <p class="sub" style="margin-top:.8rem">Tip: press <span class="kbd">R</span> to restart anytime.</p>`;
     d.querySelector('button').addEventListener('click', init);
     answers.appendChild(d);
     document.onkeydown = (e)=>{ if (e.key.toLowerCase()==='r' || e.key==='Enter') init(); };
   }
 
-  // start
+  // go!
   init();
   </script>
 </body>
