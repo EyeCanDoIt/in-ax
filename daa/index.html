@@ -11,12 +11,10 @@ filename: daa
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Difficult Airway Algorithm — Game</title>
 
-  <!-- Use your site styles -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../assets/css/echo.css">
 
   <style>
-    /* Page-local styles kept tiny & readable */
     .algo-grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
     .algo-btn{
       border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04);
@@ -30,13 +28,13 @@ filename: daa
     .danger{ color:#f87171; font-weight:800; }
     .ok{ color:#34d399; font-weight:800; }
     .pill{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .6rem; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04); color:#cbd5e1; }
-    .log{ margin-top:10px; color:#94a3b8; font-size:.95rem; max-height:140px; overflow:auto; }
     .tiny{ font-size:.9rem; opacity:.9 }
-    .echo-image-wrap{ min-height:0; } /* no image on this page */
+    .echo-image-wrap{ min-height:0; }
+    .centered{ display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+    .muted{ color:#9fb1d1 }
   </style>
 </head>
 <body class="echo">
-  <!-- Header -->
   <header class="container">
     <div class="nav-box">
       <div class="nav-row">
@@ -57,13 +55,12 @@ filename: daa
     </div>
   </header>
 
-  <!-- Game shell -->
   <div class="echo-root">
     <div class="echo-app">
       <div class="echo-header">
         <div class="echo-title-wrap">
           <h1 class="echo-title">Difficult Airway Algorithm</h1>
-          <span class="echo-sub">Follow guideline steps. Limit attempts. Oxygenation first.</span>
+          <span class="echo-sub">Limit attempts. Call for help early. Oxygenation first.</span>
         </div>
         <div class="echo-meta">
           <span id="scorePill" class="echo-pill">Score: 0</span>
@@ -74,7 +71,6 @@ filename: daa
       <section class="echo-card">
         <div id="banner" class="echo-topbanner" hidden></div>
 
-        <!-- (empty stage—no image needed) -->
         <div class="echo-stage">
           <div class="echo-image-wrap" style="padding:0">
             <div class="chips" style="padding:8px 0 0 0">
@@ -94,11 +90,6 @@ filename: daa
           </div>
         </div>
       </section>
-
-      <!-- path log -->
-      <div class="container">
-        <div class="log tiny" id="log"></div>
-      </div>
     </div>
 
     <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
@@ -116,7 +107,6 @@ filename: daa
   const bar     = $('#bar');
   const scoreEl = $('#scorePill');
   const stepEl  = $('#stepPill');
-  const logEl   = $('#log');
   const attemptsEl = $('#attempts');
   const toastEl = $('#toast');
 
@@ -132,28 +122,22 @@ filename: daa
     toastEl.textContent = msg; toastEl.classList.add('echo-show');
     clearTimeout(toast._t); toast._t = setTimeout(()=>toastEl.classList.remove('echo-show'), 1100);
   }
-  function log(line){ state.log.push(line); logEl.innerHTML = state.log.map(x=>'• '+x).join('<br>'); }
 
   /* ---------- state and graph ---------- */
   let state;
 
   const NODES = {
-    // PRE-INTUBATION SCREEN
+    // Wizard-style precheck
     precheck: {
-      title: "Pre-intubation screen",
-      prompt: "Answer each question (ASA 2022). An awake approach is recommended if any are YES.",
-      type: "screen",
+      type: "wizard",
+      title: "Pre-intubation screening (ASA 2022)",
       questions: [
         "Suspected difficult laryngoscopy?",
-        "Suspected difficult ventilation with face mask/SGA?",
+        "Suspected difficult ventilation with face mask/supraglottic airway?",
         "Significant increased risk of aspiration?",
         "Increased risk of rapid desaturation?",
         "Suspected difficult emergency invasive airway?"
-      ],
-      next: (flags)=>{
-        const anyYes = flags.some(Boolean);
-        return anyYes ? "awake_attempt" : "asleep_attempt";
-      }
+      ]
     },
 
     // AWAKE PATH
@@ -225,17 +209,17 @@ filename: daa
 
     emergency_path: {
       title: "EMERGENCY pathway",
-      prompt: "LIMIT ATTEMPTS & BE AWARE OF THE PASSAGE OF TIME — CALL FOR HELP — Prepare for emergency invasive access.",
+      prompt: "LIMIT ATTEMPTS • BE AWARE OF TIME • CALL FOR HELP • Prepare for invasive access",
       type: "options",
       items: [
-        { label:"Attempt alternative intubation approaches WHILE PREPARING for invasive access", effect:"attemptFast", next:"emerg_try" },
+        { label:"Brief alternative attempt WHILE PREPARING invasive access", effect:"attemptFast", next:"emerg_try" },
         { label:"Proceed to EMERGENCY invasive airway NOW", effect:"score:+3", next:"invasive_success" }
       ]
     },
 
     emerg_try: {
       title: "Emergency alternative attempt",
-      prompt: "Single brief attempt while preparing for front-of-neck access.",
+      prompt: "Single brief attempt while preparing front-of-neck access.",
       type: "attempt",
       onSuccess: "success",
       onFail: "invasive_success"
@@ -250,7 +234,7 @@ filename: daa
     },
     finish_awaken: {
       title: "AWAKENED PATIENT",
-      prompt: "Non-emergency path completed safely. Re-plan or postpone the case.",
+      prompt: "Non-emergency path completed safely. Re-plan or postpone.",
       type: "end",
       outcome: "ok"
     },
@@ -265,10 +249,10 @@ filename: daa
   /* ---------- engine ---------- */
   function init(){
     state = {
-      node: 'precheck',
+      node: 'intro',
       score: 0,
       attempts: 0,
-      log: []
+      pre: { idx: 0, answers: [] }
     };
     render();
   }
@@ -278,49 +262,119 @@ filename: daa
     bar.style.inset = `0 ${Math.max(0,100-steps)}% 0 0`;
     scoreEl.textContent = `Score: ${state.score}`;
     attemptsEl.textContent = `Attempts: ${state.attempts}`;
-    stepEl.textContent = `Step ${state.log.length+1}`;
+    stepEl.textContent = `Step ${Math.max(1, state.pre.idx + 1)}`;
   }
 
   function addScore(n){ state.score += n; setProgress(); }
+  const setKeyHandler = (fn)=>{ document.onkeydown = fn || null; };
 
   function render(){
-    const node = NODES[state.node];
-    if (!node) return;
     answers.innerHTML = '';
     setProgress();
 
-    // header banner
-    setBanner(`${node.title} — ${node.prompt||''}`, '#e2e8f0');
-
-    if (node.type === 'screen'){
+    if (state.node === 'intro'){
+      setBanner('Welcome! This trainer follows the 2022 ASA Difficult Airway Algorithm.', '#e2e8f0');
       const box = document.createElement('div');
-      box.style.padding='12px';
-      box.innerHTML = `<p class="tiny" style="color:#cbd5e1;margin:.25rem 0 .75rem">
-        Check <span class="note">YES</span> for any risk. Awake approach recommended if any are YES.</p>`;
-      const flags = new Array(node.questions.length).fill(false);
-
-      node.questions.forEach((q,i)=>{
-        const row = document.createElement('div');
-        row.className = 'algo-grid';
-        row.innerHTML = `
-          <button class="algo-btn" id="y${i}"><strong>YES</strong><br><small>${q}</small></button>
-          <button class="algo-btn" id="n${i}"><strong>NO</strong><br><small>${q}</small></button>`;
-        answers.appendChild(row);
-        $('#y'+i,row).addEventListener('click', ()=>{ flags[i]=true; toast('Marked YES'); });
-        $('#n'+i,row).addEventListener('click', ()=>{ flags[i]=false; toast('Marked NO'); });
-      });
-
-      const goBtn = document.createElement('button');
-      goBtn.className = 'echo-btn';
-      goBtn.textContent = 'Continue';
-      goBtn.addEventListener('click', ()=>{
-        const next = node.next(flags);
-        const anyYes = flags.some(Boolean);
-        log(anyYes ? 'Precheck → Awake approach recommended' : 'Precheck → After-induction approach reasonable');
-        state.node = next; render();
-      });
-      answers.appendChild(goBtn);
+      box.className = 'centered';
+      box.style.padding = '14px';
+      box.innerHTML = `
+        <p class="muted">You’ll answer <strong>5 quick screening questions</strong> to choose
+        <span class="note">Awake</span> vs <span class="note">After-induction</span>.
+        Then you’ll work through attempts/rescues. Keep oxygenation safe and
+        <strong>limit attempts</strong>.</p>
+        <div class="chips">
+          <span class="chip">Shortcuts: Y = Yes, N = No, Enter = Next</span>
+          <span class="chip">Goal: guideline-concordant path</span>
+        </div>
+        <button id="startBtn" class="echo-btn">Start screening</button>`;
+      answers.appendChild(box);
+      $('#startBtn', box).addEventListener('click', ()=>{ state.node='precheck'; render(); });
+      setKeyHandler(e=>{ if(e.key==='Enter') $('#startBtn',box)?.click(); });
+      return;
     }
+
+    if (state.node === 'precheck'){
+      const node = NODES.precheck;
+      const i = state.pre.idx;
+      const total = node.questions.length;
+      setBanner(`${node.title} — ${i+1}/${total}`, '#e2e8f0');
+
+      const q = node.questions[i];
+      const wrap = document.createElement('div');
+      wrap.className = 'centered';
+      wrap.style.padding='14px';
+      wrap.innerHTML = `
+        <p style="color:#cbd5e1;margin:0 0 8px">${q}</p>
+        <div class="algo-grid" style="margin:6px 0 2px">
+          <button id="yes" class="algo-btn"><strong>YES</strong><br><small>Counts toward awake strategy</small></button>
+          <button id="no"  class="algo-btn"><strong>NO</strong><br><small>Proceed if all are no</small></button>
+        </div>
+        <div class="chips">
+          <button id="back" class="echo-link" ${i===0?'disabled':''}>Back</button>
+          <button id="next" class="echo-link" disabled>Next</button>
+          <span class="chip">Any <span class="note">YES</span> → Awake recommended</span>
+        </div>`;
+      answers.appendChild(wrap);
+
+      let picked = null;
+      const choose = (val)=>{ picked = val; $('#next',wrap).disabled = false; toast(val ? 'Marked YES' : 'Marked NO'); };
+      $('#yes',wrap).addEventListener('click', ()=>choose(true));
+      $('#no',wrap).addEventListener('click', ()=>choose(false));
+
+      $('#back',wrap).addEventListener('click', ()=>{
+        if (i>0){ state.pre.idx = i-1; render(); }
+      });
+
+      $('#next',wrap).addEventListener('click', ()=>{
+        state.pre.answers[i] = picked;
+        if (i < total-1){
+          state.pre.idx = i+1; render();
+        } else {
+          // summary
+          const anyYes = state.pre.answers.some(Boolean);
+          const awake = anyYes;
+          state.node = 'summary_'+(awake?'awake':'asleep');
+          render();
+        }
+      });
+
+      setKeyHandler(e=>{
+        const k = e.key.toLowerCase();
+        if (k==='y') $('#yes',wrap)?.click();
+        if (k==='n') $('#no',wrap)?.click();
+        if (k==='enter' && !$('#next',wrap).disabled) $('#next',wrap)?.click();
+        if (k==='backspace' || k==='arrowleft') $('#back',wrap)?.click();
+      });
+      return;
+    }
+
+    if (state.node === 'summary_awake' || state.node === 'summary_asleep'){
+      const awake = state.node.endsWith('awake');
+      setBanner(awake ? 'Awake approach recommended' : 'After-induction approach reasonable', awake ? '#34d399' : '#93c5fd');
+      const yesCount = (state.pre.answers||[]).filter(Boolean).length;
+      const box = document.createElement('div');
+      box.className = 'centered';
+      box.style.padding='14px';
+      box.innerHTML = `
+        <p class="tiny" style="color:#cbd5e1;margin:0">
+          ${yesCount} of 5 screening questions were <span class="note">YES</span>.
+        </p>
+        <button id="begin" class="echo-btn">${awake?'Begin AWAKE path':'Begin AFTER-INDUCTION path'}</button>
+        <button id="review" class="echo-link">Review answers</button>`;
+      answers.appendChild(box);
+      $('#begin',box).addEventListener('click', ()=>{
+        state.node = awake ? 'awake_attempt' : 'asleep_attempt'; render();
+      });
+      $('#review',box).addEventListener('click', ()=>{ state.node='precheck'; state.pre.idx=0; render(); });
+      setKeyHandler(e=>{ if(e.key==='Enter') $('#begin',box)?.click(); });
+      return;
+    }
+
+    // from here: original algorithm nodes
+    const node = NODES[state.node];
+    if (!node) return;
+
+    setBanner(`${node.title}${node.prompt ? ' — '+node.prompt : ''}`, '#e2e8f0');
 
     if (node.type === 'choice'){
       const grid = document.createElement('div');
@@ -329,13 +383,12 @@ filename: daa
         const b = document.createElement('button');
         b.className='algo-btn';
         b.innerHTML = `<strong>${opt.label}</strong>`;
-        b.addEventListener('click', ()=>{
-          log(node.title + ': ' + opt.label);
-          state.node = opt.next; render();
-        });
+        b.addEventListener('click', ()=>{ state.node = opt.next; render(); });
         grid.appendChild(b);
       });
       answers.appendChild(grid);
+      setKeyHandler(null);
+      return;
     }
 
     if (node.type === 'options'){
@@ -350,14 +403,12 @@ filename: daa
         const b = document.createElement('button');
         b.className='algo-btn';
         b.innerHTML = `<strong>${opt.label}</strong>`;
-        b.addEventListener('click', ()=>{
-          log(node.title + ': ' + opt.label);
-          applyEffect(opt.effect);
-          state.node = opt.next; render();
-        });
+        b.addEventListener('click', ()=>{ applyEffect(opt.effect); state.node = opt.next; render(); });
         grid.appendChild(b);
       });
       answers.appendChild(grid);
+      setKeyHandler(null);
+      return;
     }
 
     if (node.type === 'attempt'){
@@ -366,10 +417,7 @@ filename: daa
       const success = document.createElement('button');
       success.className='algo-btn';
       success.innerHTML = `<strong>SUCCESS</strong><br><small>Capnography confirmed</small>`;
-      success.addEventListener('click', ()=>{
-        addScore(+2); log(node.title + ': Success');
-        state.node = node.onSuccess; render();
-      });
+      success.addEventListener('click', ()=>{ addScore(+2); state.node = node.onSuccess; render(); });
 
       const fail = document.createElement('button');
       fail.className='algo-btn';
@@ -377,21 +425,26 @@ filename: daa
       fail.addEventListener('click', ()=>{
         state.attempts += 1; setProgress();
         if (state.attempts >= 2){ setBanner('Limit attempts — consider calling for help.', '#f59e0b'); }
-        log(node.title + ': Fail');
         state.node = node.onFail; render();
       });
 
       wrap.appendChild(success); wrap.appendChild(fail);
       answers.appendChild(wrap);
 
-      // helper row
       const helper = document.createElement('div');
       helper.className='chips';
       helper.innerHTML = `
-        <span class="chip">Reposition / optimize external laryngeal manipulation</span>
+        <span class="chip">Reposition / external laryngeal manipulation</span>
         <span class="chip">Change device/operator</span>
         <span class="chip">Adjuncts: bougie, stylet, ramped position</span>`;
       answers.appendChild(helper);
+
+      setKeyHandler(e=>{
+        const k = e.key.toLowerCase();
+        if (k==='y' || k==='enter') success.click();
+        if (k==='n') fail.click();
+      });
+      return;
     }
 
     if (node.type === 'end'){
@@ -404,6 +457,7 @@ filename: daa
         <button class="echo-btn" type="button">Play again</button>`;
       $('button',box).addEventListener('click', init);
       answers.appendChild(box);
+      setKeyHandler(e=>{ if(e.key==='Enter') $('button',box)?.click(); });
     }
   }
 
