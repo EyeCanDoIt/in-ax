@@ -15,7 +15,6 @@ filename: daa
 <link rel="stylesheet" href="../assets/css/echo.css">
 
 <style>
-  /* Keep everything inside the top stage box */
   .echo-image-wrap{ min-height:460px; display:flex }
   .qa-host{ display:flex; flex-direction:column; gap:12px; width:100%; padding:18px }
 
@@ -48,22 +47,29 @@ filename: daa
         border:1px solid rgba(255,255,255,.15); border-bottom-width:2px; padding:.12rem .42rem;
         border-radius:6px; color:#cfe1ff }
 
-  /* SpO2 widget */
+  /* ---- Pulse-ox (pleth) widget ---- */
   .ox-wrap{
     position:absolute; right:12px; top:12px; z-index:8; display:flex; flex-direction:column; gap:6px;
     align-items:flex-end;
   }
   .ox-pill{
-    padding:.35rem .6rem; border-radius:999px; border:1px solid rgba(255,255,255,.14);
-    background:rgba(6,13,25,.85); color:#e6edf9; font-weight:900; font-variant-numeric:tabular-nums;
+    display:flex; align-items:baseline; gap:.35rem;
+    padding:.18rem .48rem .22rem; border-radius:8px; border:1px solid rgba(37,99,235,.25);
+    background:rgba(4,10,20,.9); color:#7dd3fc; font-weight:900; font-variant-numeric:tabular-nums;
   }
-  .ox-pill.warn{ color:#fde68a; border-color:rgba(253,230,138,.3) }
-  .ox-pill.danger{ color:#fecaca; border-color:rgba(254,202,202,.35) }
+  .ox-pill.warn{ color:#fde68a; border-color:rgba(253,230,138,.35) }
+  .ox-pill.danger{ color:#fecaca; border-color:rgba(254,202,202,.45) }
+  .ox-lbl{ font-weight:800; letter-spacing:.02em }
+  .ox-num{ font-size:1.8rem; line-height:1; letter-spacing:.02em }
 
   .ox-card{
-    width:180px; height:64px; border-radius:10px; overflow:hidden; background:rgba(6,13,25,.65);
-    border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(2px);
+    width:220px; height:70px; border-radius:10px; overflow:hidden;
+    background:linear-gradient(180deg,rgba(9,14,24,.85),rgba(6,10,18,.7));
+    border:1px solid rgba(59,130,246,.18);
   }
+  /* faint dotted guide lines like the screenshot */
+  .ox-guide{ stroke:#7dd3fc; stroke-opacity:.25; stroke-dasharray:3 4; stroke-width:1 }
+  .ox-pleth{ stroke:#5cd2ff; stroke-width:2.4; fill:none; filter:url(#oxGlow) }
 </style>
 </head>
 <body class="echo">
@@ -106,18 +112,25 @@ filename: daa
         <div class="echo-image-wrap">
           <div id="qa" class="qa-host"></div>
 
-          <!-- SpO2 widget -->
+          <!-- Pulse-ox widget -->
           <div class="ox-wrap">
-            <div id="oxPill" class="ox-pill">SpO₂ <span id="oxNum">100%</span></div>
-            <svg id="oxGraph" class="ox-card" viewBox="0 0 180 64" preserveAspectRatio="none">
+            <div id="oxPill" class="ox-pill">
+              <span class="ox-lbl">SpO₂</span><span id="oxNum" class="ox-num">100</span>
+            </div>
+            <svg id="oxGraph" class="ox-card" viewBox="0 0 220 70" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0" stop-color="#60a5fa" stop-opacity=".9"></stop>
-                  <stop offset="1" stop-color="#22d3ee" stop-opacity=".35"></stop>
-                </linearGradient>
+                <filter id="oxGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="1.4" result="glow"/>
+                  <feMerge>
+                    <feMergeNode in="glow"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
               </defs>
-              <rect x="0" y="0" width="180" height="64" fill="none"></rect>
-              <path id="oxPath" d="" fill="none" stroke="url(#g1)" stroke-width="2.2" />
+              <!-- dotted guides -->
+              <line x1="0" y1="20" x2="220" y2="20" class="ox-guide"/>
+              <line x1="0" y1="50" x2="220" y2="50" class="ox-guide"/>
+              <path id="pleth" class="ox-pleth" d=""/>
             </svg>
           </div>
         </div>
@@ -143,9 +156,9 @@ filename: daa
 <script>
 /* ---------- helpers ---------- */
 const $ = (s, el=document)=>el.querySelector(s);
-const qa = $('#qa'), banner = $('#banner'), toast = $('.echo-toast');
+const qa = $('#qa'), banner = $('#banner');
 const scorePill = $('#scorePill'), stepPill = $('#stepPill'), livesPill = $('#livesPill'), bar = $('#bar');
-const oxPill = $('#oxPill'), oxNum = $('#oxNum'), oxPath = $('#oxPath');
+const oxPill = $('#oxPill'), oxNum = $('#oxNum'), plethPath = $('#pleth');
 $('#y').textContent = new Date().getFullYear();
 $('#restartBtn').addEventListener('click', init);
 
@@ -159,25 +172,15 @@ let tickInt=null, decayEndAt=0;
 
 const physio = {
   spo2: 100,
-  history: Array(60).fill(100), // last 60s
-  decayPerSec: 0,               // negative: falling, positive: rising
+  decayPerSec: 0,   // negative: falling, positive: rising
 };
 
-function pushHistory(v){
-  physio.history.push(v); if (physio.history.length>60) physio.history.shift();
-}
-
 function updateOxUI(){
-  oxNum.textContent = `${Math.round(physio.spo2)}%`;
+  oxNum.textContent = Math.round(physio.spo2);
   const warn = physio.spo2 < 92 && physio.spo2 >= 85;
   const danger = physio.spo2 < 85;
   oxPill.classList.toggle('warn', warn);
   oxPill.classList.toggle('danger', danger);
-
-  // draw sparkline
-  const xs = physio.history.map((v,i)=>[i*3, 64 - (v/100)*60]); // width~180 (60*3)
-  const d = xs.map((p,i)=> (i?'L':'M')+p[0]+','+p[1]).join(' ');
-  oxPath.setAttribute('d', d);
 }
 
 function setDecay(ratePerSec=0, durationSec=0){
@@ -185,33 +188,46 @@ function setDecay(ratePerSec=0, durationSec=0){
   decayEndAt = durationSec ? Date.now()+durationSec*1000 : 0;
 }
 
-function nudgeTo(target){
-  // instant drop/raise toward a target level (e.g. dropTo:72)
-  physio.spo2 = (physio.spo2>target) ? target : physio.spo2;
-}
-
-function bump(delta){
-  physio.spo2 = clamp(physio.spo2 + delta, 0, 100);
-}
+function nudgeTo(target){ physio.spo2 = (physio.spo2>target) ? target : physio.spo2; }
+function bump(delta){ physio.spo2 = clamp(physio.spo2 + delta, 0, 100); }
 
 function startTicker(){
   clearInterval(tickInt);
   tickInt = setInterval(()=>{
-    // apply decay if any
+    const before = physio.spo2;
     if (physio.decayPerSec !== 0){
-      const before = physio.spo2;
       physio.spo2 = clamp(physio.spo2 + physio.decayPerSec, 0, 100);
-      // life loss on passing below 75% boundary downward
       if (before >= 75 && physio.spo2 < 75) loseLife('SpO₂ < 75% — life -1');
     }
-    // stop a timed decay
     if (decayEndAt && Date.now() >= decayEndAt) { physio.decayPerSec = 0; decayEndAt = 0; }
-
-    pushHistory(physio.spo2);
     updateOxUI();
-
     if (state.lives <= 0 || physio.spo2 <= 0){ endGame(false); }
   }, 1000);
+}
+
+/* ---------- blue pleth animation ---------- */
+let rafId=null, phase=0;
+function startPleth(){
+  cancelAnimationFrame(rafId);
+  const W=220, H=70, mid=H*0.55, period=28; // px per cycle
+  function plethShape(frac){
+    // quick upstroke (25%), slower down-slope (75%)
+    if (frac < 0.25) return frac/0.25;              // 0 → 1 fast
+    return 1 - (frac-0.25)/0.75;                    // 1 → 0 slow
+  }
+  function draw(){
+    phase = (phase + 0.9) % period;
+    const amp = 16 * (0.55 + 0.45*(physio.spo2/100));  // amplitude scales with SpO2
+    let d='';
+    for(let x=0; x<W; x++){
+      const frac = ((x+phase)%period)/period;
+      const y = mid - amp*plethShape(frac);
+      d += (x===0?'M':'L') + x + ',' + clamp(y,6,H-6).toFixed(2);
+    }
+    plethPath.setAttribute('d', d);
+    rafId = requestAnimationFrame(draw);
+  }
+  draw();
 }
 
 /* ---------- game state ---------- */
@@ -223,14 +239,10 @@ function init(){
     score: 0,
     lives: 3,
     locked: false,
-    // randomized results
     awakeSuccess: null,
     firstAttemptSuccess: null,
-    maskAdequate: null,
-    sgaAdequate: null,
   };
-  // reset physiology
-  physio.spo2 = 100; physio.history = Array(60).fill(100); setDecay(0,0); startTicker();
+  physio.spo2 = 100; setDecay(0,0); updateOxUI(); startTicker(); startPleth();
   updateMeta();
   setBanner('You have 3 lives. Wrong choices still advance, but SpO₂ may crash — recover it before it hits 0%.', '#e2e8f0');
   render();
@@ -482,7 +494,7 @@ function applyEffects(eff){
   if (typeof eff.dropTo === 'number') nudgeTo(eff.dropTo);
   if (eff.decay){ setDecay(eff.decay.rate||0, eff.decay.sec||0); }
   if (eff.lifeNow){ loseLife(eff.lifeMsg||'Life -1'); }
-  pushHistory(physio.spo2); updateOxUI();
+  updateOxUI();
 }
 
 function choose(btn, opt, all, grid){
@@ -495,20 +507,16 @@ function choose(btn, opt, all, grid){
     b.disabled = true;
   });
 
-  // scoring + banner
   if (opt.correct) addScore(1,'✅ Correct');
   else setBanner('❌ Risky choice — scenario continues. Watch the SpO₂!', '#f59e0b');
 
-  // physiology side-effects
   applyEffects(opt.effects);
 
-  // explanation bubble
   if (opt.explain){
     const note=document.createElement('div'); note.className='explain';
     note.textContent = opt.explain; qa.appendChild(note);
   }
 
-  // advance regardless of correctness
   setTimeout(()=>{
     state.stepCount++;
     const nextId = typeof opt.next === 'function' ? opt.next() : opt.next;
@@ -525,9 +533,8 @@ function endGame(cleared){
   p.innerHTML=`Final score: <strong>${state.score}</strong>. ${cleared?'You completed the case safely.':'SpO₂ hit 0% or all lives were lost. Try again.'}`;
   const btn=document.createElement('button'); btn.className='echo-btn'; btn.textContent='Play again';
   btn.addEventListener('click', init);
-  const tip=document.createElement('p'); tip.className='sub';
-  tip.innerHTML=`Tip: press <span class="kbd">R</span> to restart anytime.`;
-  qa.append(h,p,btn,tip);
+  const tip=document.createElement('p'); p.className='sub';
+  qa.append(h,p,btn);
   document.onkeydown=(e)=>{ if (e.key.toLowerCase()==='r'||e.key==='Enter') init(); };
 }
 
