@@ -11,26 +11,25 @@ filename: daa
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Difficult Airway Algorithm — Game</title>
 
-  <!-- Your site styles -->
+  <!-- Site styles -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../assets/css/echo.css">
 
   <style>
-    /* Center the whole Q/A area in a big card */
-    .echo-answers{
-      display:flex; align-items:center; justify-content:center;
-      min-height: 480px; padding: 0 14px 18px;
+    /* Put all Q&A content INSIDE the stage box */
+    .echo-image-wrap{ min-height: 420px; display:flex; }
+    .qa-host{
+      display:flex; flex-direction:column; gap:12px;
+      width:100%; padding:18px;
     }
-    .qa-card{
-      width:min(980px, 100%);
-      border:1px solid rgba(255,255,255,.14);
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border-radius:16px;
-      padding:18px;
-      box-shadow:0 18px 40px rgba(0,0,0,.25);
-    }
-    .scenario{ font-size:1.15rem; color:#dbe7ff; margin:0 0 .35rem; font-weight:800; }
-    .sub{ color:#9fb1d1; margin:0 0 1rem; font-size:.95rem }
+
+    /* Hide the old bottom answers area to avoid a second box */
+    .echo-answers{ display:none !important; }
+
+    /* Typography + options layout */
+    .scenario{ font-size:1.2rem; color:#dbe7ff; margin:0; font-weight:800; }
+    .sub{ color:#9fb1d1; margin:2px 0 10px; font-size:.98rem }
+
     .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
 
     .opt{
@@ -39,14 +38,14 @@ filename: daa
       transition:.16s ease transform,.16s ease border-color,.16s ease background,.16s ease opacity;
     }
     .opt:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.08) }
-    .opt:disabled{ opacity:.8; cursor:default }
+    .opt:disabled{ opacity:.85; cursor:default }
     .opt.correct{ outline:2px solid #34d399 }
     .opt.wrong{ outline:2px solid #f87171 }
 
     .explain{
       color:#cbd5e1; background:rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.12);
-      padding:10px 12px; border-radius:10px; margin-top:12px
+      padding:10px 12px; border-radius:10px; margin-top:6px
     }
 
     .lives-pill{
@@ -59,9 +58,6 @@ filename: daa
 
     .kbd{ font:600 .85rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; background:#0b1220; border:1px solid rgba(255,255,255,.15);
       border-bottom-width:2px; padding:.12rem .42rem; border-radius:6px; color:#cfe1ff }
-
-    /* Keep the stage compact since we don't show media here */
-    .echo-image-wrap{ min-height:0; padding:0 }
   </style>
 </head>
 <body class="echo">
@@ -104,17 +100,16 @@ filename: daa
 
         <div class="echo-stage">
           <div class="echo-image-wrap">
-            <div class="muted" style="padding:8px 0">
-              Shortcuts: <span class="kbd">1–4</span> answer · <span class="kbd">R</span> restart
-            </div>
+            <!-- Q&A mounts here INSIDE the top box -->
+            <div id="qa" class="qa-host"></div>
           </div>
         </div>
 
-        <div id="answers" class="echo-answers"></div>
-
+        <!-- footer progress + restart -->
         <div class="echo-footer">
           <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
           <div class="echo-controls">
+            <span class="muted">Shortcuts: <span class="kbd">1–4</span> answer · <span class="kbd">R</span> restart</span>
             <button id="restartBtn" class="echo-link">Restart</button>
           </div>
         </div>
@@ -131,7 +126,7 @@ filename: daa
   <script>
   // ---------- helpers ----------
   const $ = (s, el=document)=>el.querySelector(s);
-  const answers = $('#answers');
+  const qaHost = $('#qa');
   const banner  = $('#banner');
   const scoreEl = $('#scorePill');
   const stepEl  = $('#stepPill');
@@ -142,7 +137,7 @@ filename: daa
   $('#restartBtn').addEventListener('click', init);
 
   function setBanner(text,color){ banner.textContent=text||''; banner.hidden=!text; banner.style.color=color||'' }
-  function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('echo-show'), 1100); }
+  function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('echo-show'), 1000); }
   const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b };
 
   // ---------- scenario bank ----------
@@ -261,28 +256,17 @@ filename: daa
   }
 
   function renderQuestion(){
-    answers.innerHTML = '';
+    qaHost.innerHTML = '';
     if (lives <= 0){ return endGame(false); }
     if (idx >= order.length){ return endGame(true); }
 
     locked = false;
     const q = SCENARIOS[ order[idx] ];
 
-    const card = document.createElement('div');
-    card.className = 'qa-card';
+    const h = document.createElement('p'); h.className='scenario'; h.textContent=q.scenario;
+    const sub = document.createElement('p'); sub.className='sub'; sub.textContent='Choose the best next step:';
 
-    const h = document.createElement('p');
-    h.className='scenario';
-    h.textContent = q.scenario;
-    card.appendChild(h);
-
-    const sub = document.createElement('p');
-    sub.className='sub';
-    sub.textContent = 'Choose the best next step:';
-    card.appendChild(sub);
-
-    const grid = document.createElement('div');
-    grid.className='grid';
+    const grid = document.createElement('div'); grid.className='grid';
     const opts = shuffle(q.options.map(o=>({ ...o })));
 
     opts.forEach((o,oi)=>{
@@ -293,17 +277,14 @@ filename: daa
       grid.appendChild(b);
     });
 
-    card.appendChild(grid);
-    answers.appendChild(card);
+    qaHost.append(h, sub, grid);
 
     // keyboard shortcuts 1–4 + R
     document.onkeydown = (e)=>{
       if (e.key.toLowerCase()==='r'){ init(); return; }
       if (locked) return;
       const k = +e.key;
-      if (k>=1 && k<=grid.children.length){
-        grid.children[k-1].click();
-      }
+      if (k>=1 && k<=grid.children.length){ grid.children[k-1].click(); }
     };
   }
 
@@ -311,7 +292,6 @@ filename: daa
     if (locked) return; locked = true;
 
     const grid = btn.parentElement;
-    // reveal correct & mark selected
     Array.from(grid.children).forEach((b, i)=>{
       const good = !!opts[i].ok;
       if (good) b.classList.add('correct');
@@ -337,22 +317,25 @@ filename: daa
     const note = document.createElement('div');
     note.className = 'explain';
     note.textContent = text || '';
-    answers.appendChild(note);
+    qaHost.appendChild(note);
   }
 
   function endGame(cleared){
-    answers.innerHTML = '';
-    const d = document.createElement('div');
-    d.className = 'qa-card';
+    qaHost.innerHTML = '';
     const title = cleared ? 'Nice work! 🎉' : 'Could not intubate — patient coded.';
     const color = cleared ? '#34d399' : '#f87171';
-    d.innerHTML = `
-      <h2 style="margin:.2rem 0 .6rem; color:${color}">${title}</h2>
-      <p class="sub">Final score: <strong>${score}</strong> / ${SCENARIOS.length}. ${cleared ? 'You completed all scenarios.' : 'Review the algorithm and try again.'}</p>
-      <button class="echo-btn" type="button">Play again</button>
-      <p class="sub" style="margin-top:.8rem">Tip: press <span class="kbd">R</span> to restart anytime.</p>`;
-    d.querySelector('button').addEventListener('click', init);
-    answers.appendChild(d);
+    const h = document.createElement('h2');
+    h.style.cssText = `margin:.2rem 0 .6rem; color:${color}`;
+    h.textContent = title;
+    const p = document.createElement('p');
+    p.className = 'sub';
+    p.innerHTML = `Final score: <strong>${score}</strong> / ${SCENARIOS.length}. ${cleared ? 'You completed all scenarios.' : 'Review the algorithm and try again.'}`;
+    const btn = document.createElement('button');
+    btn.className = 'echo-btn'; btn.textContent = 'Play again';
+    btn.addEventListener('click', init);
+    const tip = document.createElement('p');
+    tip.className = 'sub'; tip.innerHTML = `Tip: press <span class="kbd">R</span> to restart anytime.`;
+    qaHost.append(h,p,btn,tip);
     document.onkeydown = (e)=>{ if (e.key.toLowerCase()==='r' || e.key==='Enter') init(); };
   }
 
