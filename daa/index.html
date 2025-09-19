@@ -119,7 +119,7 @@ filename: daa
         <div class="echo-stage">
           <div id="stage" class="echo-image-wrap">
             <video id="vid" class="echo-image" style="display:none" playsinline muted></video>
-            <img id="img" class="echo-image" alt="Scene" src="https://placehold.co/1200x800/0b1220/abb6d4?text=DAA+Scene" />
+            <img id="img" class="echo-image" alt="Scene" />
             <div id="overlay" class="echo-overlay"></div>
 
             <div id="flash" class="echo-flash" aria-hidden="true"></div>
@@ -173,6 +173,38 @@ filename: daa
 
   $('#restart').addEventListener('click', startGame);
 
+  /* ---------- INLINE “PNG” SCENES (SVG data URIs) ---------- */
+  function sceneURI(title, subtitle, tag){
+    const svg = `
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'>
+      <defs>
+        <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+          <stop offset='0' stop-color='#0b1220'/>
+          <stop offset='1' stop-color='#0e1628'/>
+        </linearGradient>
+        <filter id='s' x='-20%' y='-20%' width='140%' height='140%'>
+          <feDropShadow dx='0' dy='10' stdDeviation='12' flood-color='rgba(0,0,0,.35)'/>
+        </filter>
+      </defs>
+      <rect width='1200' height='800' fill='url(#g)'/>
+      <rect x='30' y='30' rx='22' ry='22' width='1140' height='740' fill='rgba(255,255,255,.03)'
+            stroke='rgba(255,255,255,.10)' filter='url(#s)'/>
+      <text x='60' y='140' fill='#c7d2fe' font-size='72' font-weight='800' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif'>
+        ${title.replace(/&/g,'&amp;')}
+      </text>
+      <text x='60' y='210' fill='#94a3b8' font-size='34' font-weight='700' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif'>
+        ${subtitle.replace(/&/g,'&amp;')}
+      </text>
+      ${tag ? `<rect x='1000' y='680' rx='10' ry='10' width='140' height='48' fill='rgba(24,35,54,.8)' stroke='rgba(255,255,255,.12)'/>
+               <text x='1018' y='712' fill='#cbd5e1' font-size='24' font-weight='700'
+                     font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif'>${tag}</text>` : '' }
+      <!-- simple decorative shapes -->
+      <circle cx='1080' cy='140' r='70' fill='rgba(96,165,250,.14)'/>
+      <rect x='930' y='240' rx='10' ry='10' width='180' height='18' fill='rgba(34,211,238,.18)'/>
+    </svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }
+
   /* ---------- DATA (one complete playable case) ---------- */
 
   // Case flags mirror ASA triggers for awake approach
@@ -186,16 +218,16 @@ filename: daa
   ];
 
   const SCENES = {
-    decide_awake : "https://placehold.co/1200x800/0b1220/93a1b7?text=Awake+or+Asleep%3F",
-    awake_method : "https://placehold.co/1200x800/0b1220/93a1b7?text=Choose+Awake+Technique",
-    topicalize   : "https://placehold.co/1200x800/0b1220/93a1b7?text=Topicalization",
-    awake_try    : "https://placehold.co/1200x800/0b1220/93a1b7?text=Awake+Intubation+Attempts",
-    induce_start : "https://placehold.co/1200x800/0b1220/93a1b7?text=Induction+%26+Preoxygenation",
-    sga_rescue   : "https://placehold.co/1200x800/0b1220/93a1b7?text=SGA+Rescue",
-    cico         : "https://placehold.co/1200x800/0b1220/93a1b7?text=CICO",
-    tube_ok      : "https://placehold.co/1200x800/0b1220/93a1b7?text=ET+Tube+in+Place",
-    extubation   : "https://placehold.co/1200x800/0b1220/93a1b7?text=Extubation+Strategy",
-    finish       : "https://placehold.co/1200x800/0b1220/93a1b7?text=Case+Complete"
+    decide_awake : sceneURI("Awake or Asleep?", "Choose the initial approach", "start"),
+    awake_method : sceneURI("Choose Awake Technique", "FOI / Video Laryngoscopy / Combination", "awake"),
+    topicalize   : sceneURI("Topicalization", "Atomize, spray, nerve blocks — prep well", "prep"),
+    awake_try    : sceneURI("Awake Intubation Attempts", "Limit attempts; escalate early", "attempts"),
+    induce_start : sceneURI("Induction & Preoxygenation", "Pick an interface; protect oxygenation", "induce"),
+    sga_rescue   : sceneURI("SGA Rescue", "Re-establish ventilation & oxygenation", "rescue"),
+    cico         : sceneURI("CICO Pathway", "Cannot intubate / cannot oxygenate", "CICO"),
+    tube_ok      : sceneURI("Tube in Place", "Capnography confirmed; secure tube", "success"),
+    extubation   : sceneURI("Extubation Strategy", "Plan for the high-risk airway", "plan"),
+    finish       : sceneURI("Case Complete", "Review choices & learning points", "done")
   };
 
   const NODES = {
@@ -552,6 +584,7 @@ filename: daa
     const base = tech==='FOI' ? 0.55 : tech==='VL' ? 0.6 : 0.7; // combo best
     const topi = state.meta.topicalize ?? 1;
     const help = state.help ? 0.08 : 0;
+    aconst = 0; // placeholder to keep minifier happy
     const tries = state.attempts[tech]||0;
     const penalty = Math.max(0, (tries-1)*0.08);
     return Math.min(0.93, base*topi + help - penalty);
