@@ -7,416 +7,532 @@ filename: daa
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Difficult Airway Algorithm — Game</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Difficult Airway Algorithm — Game</title>
 
-  <link rel="stylesheet" href="../style.css">
-  <link rel="stylesheet" href="../assets/css/echo.css">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../assets/css/echo.css">
 
-  <style>
-    .echo-image-wrap{ min-height: 440px; display:flex; }
-    .qa-host{ display:flex; flex-direction:column; gap:12px; width:100%; padding:18px; }
+<style>
+  /* Keep everything inside the top stage box */
+  .echo-image-wrap{ min-height:460px; display:flex }
+  .qa-host{ display:flex; flex-direction:column; gap:12px; width:100%; padding:18px }
 
-    .echo-answers{ display:none !important; } /* keep everything in the top box */
+  .echo-answers{ display:none !important }
 
-    .scenario{ font-size:1.2rem; color:#dbe7ff; margin:0; font-weight:800; }
-    .sub{ color:#9fb1d1; margin:2px 0 10px; font-size:.98rem }
+  .scenario{ font-size:1.16rem; color:#dbe7ff; margin:0; font-weight:800 }
+  .sub{ color:#9fb1d1; margin:2px 0 8px; font-size:.98rem }
 
-    .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
-    .opt{
-      border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
-      color:#e6edf9; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer;
-      transition:.16s ease transform,.16s ease border-color,.16s ease background,.16s ease opacity;
-    }
-    .opt:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.08) }
-    .opt:disabled{ opacity:.85; cursor:default }
-    .opt.correct{ outline:2px solid #34d399 }
-    .opt.wrong{ outline:2px solid #f87171 }
+  .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)) }
+  .opt{
+    border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
+    color:#e6edf9; border-radius:12px; padding:12px 14px; text-align:left; cursor:pointer;
+    transition:.16s ease transform,.16s ease border-color,.16s ease background,.16s ease opacity;
+  }
+  .opt:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.08) }
+  .opt:disabled{ opacity:.9; cursor:default }
+  .opt.correct{ outline:2px solid #34d399 }
+  .opt.wrong{ outline:2px solid #f87171 }
 
-    .explain{
-      color:#cbd5e1; background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.12);
-      padding:10px 12px; border-radius:10px; margin-top:6px
-    }
+  .explain{ color:#cbd5e1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+           padding:10px 12px; border-radius:10px; margin-top:6px }
 
-    .lives-pill{
-      display:inline-flex; align-items:center; gap:.5rem;
-      padding:.35rem .7rem; border-radius:999px;
-      border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
-      color:#e6edf9; font-weight:800;
-    }
-    .heart{ filter: drop-shadow(0 0 8px rgba(239,68,68,.35)); font-size:1.05rem; letter-spacing:.1rem }
+  .lives-pill{
+    display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .7rem; border-radius:999px;
+    border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); color:#e6edf9; font-weight:800;
+  }
+  .heart{ filter: drop-shadow(0 0 8px rgba(239,68,68,.35)); font-size:1.05rem; letter-spacing:.1rem }
 
-    .kbd{ font:600 .85rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; background:#0b1220; border:1px solid rgba(255,255,255,.15);
-      border-bottom-width:2px; padding:.12rem .42rem; border-radius:6px; color:#cfe1ff }
-  </style>
+  .kbd{ font:600 .85rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; background:#0b1220;
+        border:1px solid rgba(255,255,255,.15); border-bottom-width:2px; padding:.12rem .42rem;
+        border-radius:6px; color:#cfe1ff }
+
+  /* SpO2 widget */
+  .ox-wrap{
+    position:absolute; right:12px; top:12px; z-index:8; display:flex; flex-direction:column; gap:6px;
+    align-items:flex-end;
+  }
+  .ox-pill{
+    padding:.35rem .6rem; border-radius:999px; border:1px solid rgba(255,255,255,.14);
+    background:rgba(6,13,25,.85); color:#e6edf9; font-weight:900; font-variant-numeric:tabular-nums;
+  }
+  .ox-pill.warn{ color:#fde68a; border-color:rgba(253,230,138,.3) }
+  .ox-pill.danger{ color:#fecaca; border-color:rgba(254,202,202,.35) }
+
+  .ox-card{
+    width:180px; height:64px; border-radius:10px; overflow:hidden; background:rgba(6,13,25,.65);
+    border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(2px);
+  }
+</style>
 </head>
 <body class="echo">
-  <header class="container">
-    <div class="nav-box">
-      <div class="nav-row">
-        <a class="brand" href="../" aria-label="In-Ax — home">
-          <img class="logo" src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png" alt="In-Ax logo" />
-        </a>
+<header class="container">
+  <div class="nav-box">
+    <div class="nav-row">
+      <a class="brand" href="../" aria-label="In-Ax — home">
+        <img class="logo" src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png" alt="In-Ax logo">
+      </a>
+      <nav class="tabs" aria-label="Primary">
+        <a class="tab" href="../" data-match="/">Home</a>
+        <a class="tab" href="../at/" data-match="/at">AT</a>
+        <a class="tab" href="../tee/" data-match="/tee">TEE</a>
+        <a class="tab active" href="./" data-match="/daa">DAA</a>
+        <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
+      </nav>
+      <div class="subtitle">Randomized outcomes • 3 lives • SpO₂ trends • Oxygenation first</div>
+    </div>
+  </div>
+</header>
 
-        <nav class="tabs" aria-label="Primary">
-          <a class="tab" href="../" data-match="/">Home</a>
-          <a class="tab" href="../at/" data-match="/at">AT</a>
-          <a class="tab" href="../tee/" data-match="/tee">TEE</a>
-          <a class="tab active" href="./" data-match="/daa">DAA</a>
-          <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
-        </nav>
-
-        <div class="subtitle">One continuous case • Random outcomes • 3 lives • Oxygenation first</div>
+<div class="echo-root">
+  <div class="echo-app">
+    <div class="echo-header">
+      <div class="echo-title-wrap">
+        <h1 class="echo-title">Difficult Airway Algorithm</h1>
+        <span class="echo-sub">ASA 2022 — limit attempts, call for help early</span>
+      </div>
+      <div class="echo-meta">
+        <span id="scorePill" class="echo-pill">Score: 0</span>
+        <span id="stepPill" class="echo-pill">Step 1</span>
+        <span id="livesPill" class="lives-pill"><span class="heart">♥♥♥</span> Lives</span>
       </div>
     </div>
-  </header>
 
-  <div class="echo-root">
-    <div class="echo-app">
-      <div class="echo-header">
-        <div class="echo-title-wrap">
-          <h1 class="echo-title">Difficult Airway Algorithm</h1>
-          <span class="echo-sub">ASA 2022 — limit attempts, call for help early</span>
-        </div>
-        <div class="echo-meta">
-          <span id="scorePill" class="echo-pill">Score: 0</span>
-          <span id="stepPill" class="echo-pill">Step 1</span>
-          <span id="livesPill" class="lives-pill"><span class="heart">♥♥♥</span> Lives</span>
+    <section class="echo-card">
+      <div id="banner" class="echo-topbanner" hidden></div>
+
+      <div class="echo-stage">
+        <div class="echo-image-wrap">
+          <div id="qa" class="qa-host"></div>
+
+          <!-- SpO2 widget -->
+          <div class="ox-wrap">
+            <div id="oxPill" class="ox-pill">SpO₂ <span id="oxNum">100%</span></div>
+            <svg id="oxGraph" class="ox-card" viewBox="0 0 180 64" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="#60a5fa" stop-opacity=".9"></stop>
+                  <stop offset="1" stop-color="#22d3ee" stop-opacity=".35"></stop>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="180" height="64" fill="none"></rect>
+              <path id="oxPath" d="" fill="none" stroke="url(#g1)" stroke-width="2.2" />
+            </svg>
+          </div>
         </div>
       </div>
 
-      <section class="echo-card">
-        <div id="banner" class="echo-topbanner" hidden></div>
-
-        <div class="echo-stage">
-          <div class="echo-image-wrap">
-            <div id="qa" class="qa-host"></div>
-          </div>
+      <div class="echo-footer">
+        <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
+        <div class="echo-controls">
+          <span class="muted">Shortcuts: <span class="kbd">1–4</span> answer · <span class="kbd">R</span> restart</span>
+          <button id="restartBtn" class="echo-link">Restart</button>
         </div>
-
-        <div class="echo-footer">
-          <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
-          <div class="echo-controls">
-            <span class="muted">Shortcuts: <span class="kbd">1–4</span> answer · <span class="kbd">R</span> restart</span>
-            <button id="restartBtn" class="echo-link">Restart</button>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
+      </div>
+    </section>
   </div>
 
-  <footer class="container" style="color:#93a1b7; text-align:center; padding:20px 0 28px; font-size:.9rem;">
-    © <span id="y"></span> In-Ax
-  </footer>
+  <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
+</div>
 
-  <script>
-  /* ---------- small helpers ---------- */
-  const $ = (s, el=document)=>el.querySelector(s);
-  const qa = $('#qa'); const banner = $('#banner'); const toast = $('.echo-toast');
-  const scorePill = $('#scorePill'); const stepPill = $('#stepPill'); const livesPill = $('#livesPill'); const bar = $('#bar');
-  $('#y').textContent = new Date().getFullYear();
-  $('#restartBtn').addEventListener('click', init);
+<footer class="container" style="color:#93a1b7; text-align:center; padding:20px 0 28px; font-size:.9rem;">
+  © <span id="y"></span> In-Ax
+</footer>
 
-  function setBanner(t,c){ banner.textContent=t||''; banner.hidden=!t; banner.style.color=c||'' }
-  function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b }
-  function hearts(n){ return '♥'.repeat(n) + '♡'.repeat(3-n) }
-  function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('echo-show'), 900); }
+<script>
+/* ---------- helpers ---------- */
+const $ = (s, el=document)=>el.querySelector(s);
+const qa = $('#qa'), banner = $('#banner'), toast = $('.echo-toast');
+const scorePill = $('#scorePill'), stepPill = $('#stepPill'), livesPill = $('#livesPill'), bar = $('#bar');
+const oxPill = $('#oxPill'), oxNum = $('#oxNum'), oxPath = $('#oxPath');
+$('#y').textContent = new Date().getFullYear();
+$('#restartBtn').addEventListener('click', init);
 
-  /* ---------- game state ---------- */
-  const rng = ()=>Math.random();
-  let state;
+function setBanner(t,c){ banner.textContent=t||''; banner.hidden=!t; banner.style.color=c||'' }
+function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b }
+function hearts(n){ return '♥'.repeat(n)+'♡'.repeat(3-n) }
+function clamp(n,min,max){ return Math.max(min, Math.min(max,n)) }
 
-  function init(){
-    state = {
-      stepId: rng() < 0.5 ? 'awake_entry' : 'induction_entry', // pick a starting pathway
-      stepCount: 1,
-      score: 0,
-      lives: 3,
-      // runtime flags for random outcomes
-      awakeSuccess: null,
-      firstAttemptSuccess: null,
-      maskAdequate: null,
-      sgaAdequate: null,
-      locked: false
-    };
-    updateMeta();
-    setBanner('You have 3 lives. Pick the BEST next step each time.', '#e2e8f0');
-    render();
-  }
+/* ---------- physiology engine ---------- */
+let tickInt=null, decayEndAt=0;
 
-  function updateMeta(){
-    scorePill.textContent = `Score: ${state.score}`;
-    stepPill.textContent  = `Step ${state.stepCount}`;
-    livesPill.innerHTML   = `<span class="heart">${hearts(state.lives)}</span> Lives`;
-    bar.style.inset = `0 ${Math.max(0, 100 - state.stepCount*7)}% 0 0`;
-  }
+const physio = {
+  spo2: 100,
+  history: Array(60).fill(100), // last 60s
+  decayPerSec: 0,               // negative: falling, positive: rising
+};
 
-  function loseLife(msg){
-    state.lives = Math.max(0, state.lives-1);
-    updateMeta();
-    if (msg) setBanner(msg, '#f87171');
-    if (state.lives === 0){ return endGame(false); }
-  }
+function pushHistory(v){
+  physio.history.push(v); if (physio.history.length>60) physio.history.shift();
+}
 
-  function addScore(n=1, msg='✅ Correct'){
-    state.score += n; updateMeta(); setBanner(msg, '#34d399');
-  }
+function updateOxUI(){
+  oxNum.textContent = `${Math.round(physio.spo2)}%`;
+  const warn = physio.spo2 < 92 && physio.spo2 >= 85;
+  const danger = physio.spo2 < 85;
+  oxPill.classList.toggle('warn', warn);
+  oxPill.classList.toggle('danger', danger);
 
-  /* ---------- steps (node factory) ---------- */
-  // Each step returns {title, sub, options:[{txt, correct, next, explain, onPick?}]}
-  function getStep(id){
-    switch(id){
+  // draw sparkline
+  const xs = physio.history.map((v,i)=>[i*3, 64 - (v/100)*60]); // width~180 (60*3)
+  const d = xs.map((p,i)=> (i?'L':'M')+p[0]+','+p[1]).join(' ');
+  oxPath.setAttribute('d', d);
+}
 
-      /* ===== A) Awake pathway entry ===== */
-      case 'awake_entry':
-        return {
-          title: 'Pre-intubation screen',
-          sub: 'Suspected difficult airway + increased aspiration risk. What is your next move?',
-          options: [
-            { txt:'Intubation attempt with patient AWAKE', correct:true, explain:'Any YES factor such as difficult laryngoscopy or aspiration risk supports an awake approach.',
-              next: ()=>{
-                // random outcome of awake attempt
-                state.awakeSuccess = rng() < 0.7; // ~70% success
-                return state.awakeSuccess ? 'tube_ok' : 'awake_failed';
-              }
-            },
-            { txt:'Induce general anesthesia now and attempt DL', correct:false,
-              explain:'Unsafe choice here: after induction you may lose airway/oxygenation.',
-              onPick: ()=>loseLife('❌ Unsafe: GA when awake is indicated → life -1'),
-              next:'induction_after' },
-            { txt:'Skip preoxygenation and intubate quickly', correct:false,
-              onPick: ()=>loseLife('❌ Skipping preoxygenation increases hypoxemia risk.') },
-            { txt:'Deep sedation and “test” mask ventilation first', correct:false,
-              onPick: ()=>loseLife('❌ Sedation can worsen airway patency without securing it.') },
-          ]
-        };
+function setDecay(ratePerSec=0, durationSec=0){
+  physio.decayPerSec = ratePerSec;
+  decayEndAt = durationSec ? Date.now()+durationSec*1000 : 0;
+}
 
-      case 'awake_failed':
-        return {
-          title: 'Awake intubation FAILED',
-          sub: 'Best next step?',
-          options: [
-            { txt:'Postpone the case', correct:true,
-              explain:'ASA: After failed awake attempt and maintained oxygenation, consider postponing or alternative plans.',
-              next:'end_safe' },
-            { txt:'Repeat attempts indefinitely', correct:false,
-              onPick: ()=>loseLife('❌ Unlimited attempts increase trauma and failure.') },
-            { txt:'Induce general anesthesia now and try DL', correct:false,
-              onPick: ()=>loseLife('❌ Induction after failed awake attempt risks loss of airway.') },
-            { txt:'Proceed straight to emergency front-of-neck access', correct:false,
-              onPick: ()=>loseLife('❌ Not indicated if oxygenation is preserved and no CICO.') },
-          ]
-        };
+function nudgeTo(target){
+  // instant drop/raise toward a target level (e.g. dropTo:72)
+  physio.spo2 = (physio.spo2>target) ? target : physio.spo2;
+}
 
-      /* ===== B) Induction pathway entry ===== */
-      case 'induction_entry':
-        return {
-          title: 'Pre-intubation screen',
-          sub: 'No major risk factors identified. What is your approach?',
-          options: [
-            { txt:'Proceed AFTER INDUCTION with optimal preoxygenation', correct:true,
-              explain:'Reasonable after a negative screen. Ensure high-quality preoxygenation.',
-              next:'induction_after' },
-            { txt:'Mandatory awake intubation for all patients', correct:false,
-              onPick: ()=>loseLife('❌ Awake is not mandatory without risk factors.') },
-            { txt:'Skip capnography to simplify', correct:false,
-              onPick: ()=>loseLife('❌ Continuous capnography is required.') },
-            { txt:'Disable alarms to avoid noise', correct:false,
-              onPick: ()=>loseLife('❌ Keep monitoring on.') },
-          ]
-        };
+function bump(delta){
+  physio.spo2 = clamp(physio.spo2 + delta, 0, 100);
+}
 
-      case 'induction_after':
-        // After induction, first attempt outcome is random
-        state.firstAttemptSuccess = rng() < 0.65;
-        if (state.firstAttemptSuccess){
-          return {
-            title:'Intubation attempt after induction',
-            sub:'Success on first attempt.',
-            options:[
-              { txt:'Continue to secure and confirm the tube', correct:true, next:'tube_ok' },
-              { txt:'Remove the tube and try again for practice', correct:false, onPick:()=>loseLife('❌ Do not create problems after success.') },
-              { txt:'Turn off capnography', correct:false, onPick:()=>loseLife('❌ Always confirm with ETCO₂.') },
-              { txt:'Ignore securing device', correct:false, onPick:()=>loseLife('❌ Secure the airway.') },
-            ]
-          };
-        } else {
-          return {
-            title:'Intubation attempt after induction',
-            sub:'FAILED first attempt. Best immediate action?',
-            options:[
-              { txt:'Check MASK ventilation (CO₂) and oxygenate; limit attempts; consider calling for help', correct:true,
-                next: ()=>{
-                  state.maskAdequate = rng() < 0.6; // ~60% adequate
-                  return state.maskAdequate ? 'mask_ok' : 'mask_bad';
-                }},
-              { txt:'Keep attempting DL repeatedly without reassessment', correct:false, onPick:()=>loseLife('❌ Limit attempts; reassess oxygenation.') },
-              { txt:'Disable alarms and try to relax', correct:false, onPick:()=>loseLife('❌ Safety risk.') },
-              { txt:'Proceed directly to extubation plan', correct:false, onPick:()=>loseLife('❌ Not relevant now.') },
-            ]
-          };
-        }
-
-      case 'mask_ok':
-        return {
-          title:'Mask ventilation ADEQUATE (CO₂ confirmed)',
-          sub:'With oxygenation secured, what now?',
-          options:[
-            { txt:'Limit attempts and consider AWAKENING / alternative approach', correct:true,
-              explain:'Non-emergency pathway if ventilation is adequate.',
-              next:'end_safe' },
-            { txt:'Unlimited DL attempts until success', correct:false, onPick:()=>loseLife('❌ Limit attempts (injury/hypoxemia risk).') },
-            { txt:'Go straight to emergency front-of-neck access', correct:false, onPick:()=>loseLife('❌ Not indicated if ventilation adequate.') },
-            { txt:'Remove monitoring to simplify', correct:false, onPick:()=>loseLife('❌ Keep monitoring on.') },
-          ]
-        };
-
-      case 'mask_bad':
-        return {
-          title:'Mask ventilation NOT adequate',
-          sub:'Next best step?',
-          options:[
-            { txt:'Consider/attempt SUPRAGLOTTIC AIRWAY (SGA)', correct:true,
-              next: ()=>{
-                state.sgaAdequate = rng() < 0.6;
-                return state.sgaAdequate ? 'sga_ok' : 'sga_bad';
-              }},
-            { txt:'Keep trying mask only', correct:false, onPick:()=>loseLife('❌ Escalate to SGA when mask inadequate.') },
-            { txt:'Wait for sats to recover on their own', correct:false, onPick:()=>loseLife('❌ Oxygenation first—act now.') },
-            { txt:'Give deep sedation and reassess later', correct:false, onPick:()=>loseLife('❌ Sedation can worsen airway without ventilation.') },
-          ]
-        };
-
-      case 'sga_ok':
-        return {
-          title:'SGA ventilation ADEQUATE',
-          sub:'Best next step?',
-          options:[
-            { txt:'Non-emergency path: wake patient OR intubate through SGA', correct:true, next:'end_safe' },
-            { txt:'Remove SGA and retry DL repeatedly', correct:false, onPick:()=>loseLife('❌ Keep oxygenation; avoid repeated DL.') },
-            { txt:'Go to emergency invasive airway now', correct:false, onPick:()=>loseLife('❌ Not indicated if ventilation adequate.') },
-            { txt:'Turn off oxygen to avoid gastric insufflation', correct:false, onPick:()=>loseLife('❌ Maintain oxygenation.') },
-          ]
-        };
-
-      case 'sga_bad':
-        return {
-          title:'SGA ventilation NOT adequate — CICO evolving',
-          sub:'Next best step?',
-          options:[
-            { txt:'EMERGENCY pathway: prepare Front-of-Neck Access (FONA), call for help', correct:true, next:'tube_ok' },
-            { txt:'Try a few more DL attempts first', correct:false, onPick:()=>loseLife('❌ Do not delay emergency access in CICO.') },
-            { txt:'Pause and reassess later without oxygenation', correct:false, onPick:()=>loseLife('❌ Oxygenation cannot wait.') },
-            { txt:'Remove oxygen “to see the baseline”', correct:false, onPick:()=>loseLife('❌ Keep oxygenation.') },
-          ]
-        };
-
-      case 'tube_ok':
-        return {
-          title:'Tube placed — capnography CONFIRMED',
-          sub:'Choose the best next step:',
-          options:[
-            { txt:'Secure tube and plan EXTUBATION strategy (consider AEC if high-risk)', correct:true, next:'end_safe' },
-            { txt:'Skip capnography; rely on chest rise', correct:false, onPick:()=>loseLife('❌ Always confirm with ETCO₂.') },
-            { txt:'Remove the tube to check positioning', correct:false, onPick:()=>loseLife('❌ Keep a confirmed airway secure.') },
-            { txt:'Ignore securing device until later', correct:false, onPick:()=>loseLife('❌ Secure immediately.') },
-          ]
-        };
-
-      /* virtual end nodes */
-      case 'end_safe':
-        return { title:'Case finished safely', sub:'Nice work — guideline-concordant decisions.', options:[
-          { txt:'Play again', correct:true, next:()=>{ init(); return null; } }
-        ] };
-
-      default:
-        return { title:'(Unknown)', sub:'', options:[{txt:'Restart', correct:true, next:()=>{ init(); return null; }}] };
+function startTicker(){
+  clearInterval(tickInt);
+  tickInt = setInterval(()=>{
+    // apply decay if any
+    if (physio.decayPerSec !== 0){
+      const before = physio.spo2;
+      physio.spo2 = clamp(physio.spo2 + physio.decayPerSec, 0, 100);
+      // life loss on passing below 75% boundary downward
+      if (before >= 75 && physio.spo2 < 75) loseLife('SpO₂ < 75% — life -1');
     }
-  }
+    // stop a timed decay
+    if (decayEndAt && Date.now() >= decayEndAt) { physio.decayPerSec = 0; decayEndAt = 0; }
 
-  /* ---------- renderer ---------- */
-  function render(){
-    const step = getStep(state.stepId);
-    qa.innerHTML = '';
-    state.locked = false;
+    pushHistory(physio.spo2);
+    updateOxUI();
 
-    // Title + subtitle
-    const h = document.createElement('p'); h.className='scenario'; h.textContent = step.title;
-    const sub = document.createElement('p'); sub.className='sub'; sub.textContent = step.sub || '';
-    qa.append(h,sub);
+    if (state.lives <= 0 || physio.spo2 <= 0){ endGame(false); }
+  }, 1000);
+}
 
-    // Options
-    const grid = document.createElement('div'); grid.className='grid';
-    const opts = shuffle(step.options.map(o=>({...o})));
-    opts.forEach((o, i)=>{
-      const b = document.createElement('button');
-      b.className = 'opt';
-      b.innerHTML = `<strong>${i+1}. ${o.txt}</strong>`;
-      b.addEventListener('click', ()=> choose(b,o,opts,grid));
-      grid.appendChild(b);
-    });
-    qa.appendChild(grid);
+/* ---------- game state ---------- */
+let state;
+function init(){
+  state = {
+    stepId: Math.random()<0.5 ? 'awake_entry' : 'induction_entry',
+    stepCount: 1,
+    score: 0,
+    lives: 3,
+    locked: false,
+    // randomized results
+    awakeSuccess: null,
+    firstAttemptSuccess: null,
+    maskAdequate: null,
+    sgaAdequate: null,
+  };
+  // reset physiology
+  physio.spo2 = 100; physio.history = Array(60).fill(100); setDecay(0,0); startTicker();
+  updateMeta();
+  setBanner('You have 3 lives. Wrong choices still advance, but SpO₂ may crash — recover it before it hits 0%.', '#e2e8f0');
+  render();
+}
 
-    // keyboard shortcuts
-    document.onkeydown = (e)=>{
-      if (e.key.toLowerCase()==='r'){ init(); return; }
-      if (state.locked) return;
-      const k = +e.key;
-      if (k>=1 && k<=grid.children.length){ grid.children[k-1].click(); }
-    };
-  }
+function updateMeta(){
+  scorePill.textContent = `Score: ${state.score}`;
+  stepPill.textContent  = `Step ${state.stepCount}`;
+  livesPill.innerHTML   = `<span class="heart">${hearts(state.lives)}</span> Lives`;
+  bar.style.inset = `0 ${Math.max(0,100 - state.stepCount*7)}% 0 0`;
+  updateOxUI();
+}
 
-  function choose(btn, opt, all, grid){
-    if (state.locked) return; state.locked = true;
+function loseLife(msg){
+  state.lives = Math.max(0, state.lives-1);
+  updateMeta();
+  if (msg) setBanner(msg, '#f87171');
+}
+function addScore(n=1,msg='✅ Correct'){ state.score+=n; updateMeta(); setBanner(msg,'#34d399'); }
 
-    // reveal right/wrong
-    Array.from(grid.children).forEach((b, idx)=>{
-      const good = !!all[idx].correct;
-      if (good) b.classList.add('correct');
-      if (b === btn && !good) b.classList.add('wrong');
-      b.disabled = true;
-    });
+/* ---------- steps ---------- */
+function getStep(id){
+  switch(id){
+    /* ===== A) Awake pathway entry ===== */
+    case 'awake_entry':
+      return {
+        title:'Pre-intubation screen',
+        sub:'Suspected difficult airway + increased aspiration risk. What is your next move?',
+        options:[
+          { txt:'Intubation attempt with patient AWAKE', correct:true,
+            explain:'Any YES factor (difficult laryngoscopy, aspiration risk, etc.) supports an awake approach.',
+            next:()=>{
+              state.awakeSuccess = Math.random()<0.7;
+              return state.awakeSuccess ? 'tube_ok' : 'awake_failed';
+            }
+          },
+          { txt:'Induce general anesthesia now and attempt DL', correct:false,
+            explain:'Unsafe in this screen; you risk loss of airway.',
+            effects:{ dropTo:72, decay:{rate:-3,sec:12}, lifeNow:true, lifeMsg:'❌ Unsafe: GA when awake is indicated — life -1' },
+            next:'induction_after'
+          },
+          { txt:'Skip preoxygenation and intubate quickly', correct:false,
+            explain:'Skipping preoxygenation → rapid desaturation.',
+            effects:{ dropTo:70, decay:{rate:-4,sec:12}, lifeNow:true, lifeMsg:'❌ SpO₂ crashed from poor prep — life -1' },
+            next:'induction_after'
+          },
+          { txt:'Deep sedation and “test” mask ventilation first', correct:false,
+            explain:'Sedation can worsen airway patency without securing it.',
+            effects:{ dropTo:84, decay:{rate:-1.2,sec:10} },
+            next:'induction_after'
+          },
+        ]
+      };
 
-    // feedback + scoring
-    if (opt.correct){ addScore(1, '✅ Correct'); }
-    else { loseLife(); setBanner('❌ Incorrect', '#f87171'); }
+    case 'awake_failed':
+      return {
+        title:'Awake intubation FAILED',
+        sub:'Best next step?',
+        options:[
+          { txt:'Postpone the case', correct:true,
+            explain:'After failed awake attempt with oxygenation preserved, postpone or choose an alternative elective plan.',
+            effects:{ decay:{rate:+1.2,sec:6} }, next:'end_safe' },
+          { txt:'Repeat attempts indefinitely', correct:false,
+            explain:'Limit attempts to reduce trauma/failure.',
+            effects:{ decay:{rate:-1.5,sec:12} }, next:'awake_failed' },
+          { txt:'Induce general anesthesia now and try DL', correct:false,
+            explain:'Risky after failed awake attempt.',
+            effects:{ dropTo:68, decay:{rate:-3.5,sec:10}, lifeNow:true }, next:'induction_after' },
+          { txt:'Proceed straight to emergency front-of-neck access', correct:false,
+            explain:'Not indicated if oxygenation is preserved and no CICO.',
+            next:'induction_after'
+          },
+        ]
+      };
 
-    // explanation bubble
-    if (opt.explain){
-      const note = document.createElement('div'); note.className='explain';
-      note.textContent = opt.explain; qa.appendChild(note);
+    /* ===== B) Induction pathway entry ===== */
+    case 'induction_entry':
+      return {
+        title:'Pre-intubation screen',
+        sub:'No major risk factors identified. What is your approach?',
+        options:[
+          { txt:'Proceed AFTER INDUCTION with optimal preoxygenation', correct:true,
+            explain:'Reasonable after a negative screen. Ensure high-quality preoxygenation.',
+            effects:{ decay:{rate:+0.8,sec:6}, bump:2 }, next:'induction_after' },
+          { txt:'Mandatory awake intubation for all patients', correct:false,
+            effects:{}, next:'induction_after' },
+          { txt:'Skip capnography to simplify', correct:false,
+            effects:{}, next:'induction_after', },
+          { txt:'Disable alarms to avoid noise', correct:false,
+            effects:{}, next:'induction_after' },
+        ]
+      };
+
+    case 'induction_after': {
+      state.firstAttemptSuccess = Math.random()<0.65;
+      if (state.firstAttemptSuccess){
+        return {
+          title:'Intubation attempt after induction',
+          sub:'Success on first attempt.',
+          options:[
+            { txt:'Secure and confirm the tube (capnography)', correct:true,
+              effects:{ bump:3, decay:{rate:+1,sec:5} }, next:'tube_ok' },
+            { txt:'Remove the tube and try again for practice', correct:false,
+              effects:{ dropTo:80 }, next:'tube_ok' },
+            { txt:'Turn off capnography', correct:false, effects:{}, next:'tube_ok' },
+            { txt:'Ignore securing device', correct:false, effects:{}, next:'tube_ok' },
+          ]
+        };
+      } else {
+        return {
+          title:'Intubation attempt after induction',
+          sub:'FAILED first attempt. Best immediate action?',
+          options:[
+            { txt:'Check MASK ventilation (CO₂) and oxygenate; limit attempts; consider calling for help', correct:true,
+              effects:{ bump:6, decay:{rate:+2.8,sec:8} },
+              next:()=> (Math.random()<0.6 ? 'mask_ok' : 'mask_bad') },
+            { txt:'Keep attempting DL repeatedly without reassessment', correct:false,
+              effects:{ decay:{rate:-2.2,sec:10} }, next:()=> (Math.random()<0.6 ? 'mask_ok' : 'mask_bad') },
+            { txt:'Disable alarms and keep trying', correct:false,
+              effects:{ decay:{rate:-2.5,sec:10} }, next:()=> 'mask_bad' },
+            { txt:'Proceed directly to extubation plan', correct:false,
+              effects:{}, next:()=> (Math.random()<0.6 ? 'mask_ok' : 'mask_bad') },
+          ]
+        };
+      }
     }
 
-    // advance
-    setTimeout(()=>{
-      state.stepCount++;
-      const nextId = typeof opt.next === 'function' ? opt.next() : opt.next;
-      if (nextId){ state.stepId = nextId; updateMeta(); setBanner(''); render(); }
-      else { /* next handled inside opt.next (e.g., restart) */ }
-    }, opt.correct ? 850 : 1100);
+    case 'mask_ok':
+      return {
+        title:'Mask ventilation ADEQUATE (CO₂ confirmed)',
+        sub:'With oxygenation secured, what now?',
+        options:[
+          { txt:'Limit attempts and consider AWAKENING / alternative approach', correct:true,
+            effects:{ decay:{rate:+1.2,sec:6}, bump:4 }, next:'end_safe' },
+          { txt:'Unlimited DL attempts until success', correct:false,
+            effects:{ decay:{rate:-1.5,sec:8} }, next:'mask_ok' },
+          { txt:'Go straight to emergency front-of-neck access', correct:false,
+            effects:{}, next:'mask_ok' },
+          { txt:'Remove monitoring to simplify', correct:false,
+            effects:{}, next:'mask_ok' },
+        ]
+      };
+
+    case 'mask_bad':
+      return {
+        title:'Mask ventilation NOT adequate',
+        sub:'Next best step?',
+        options:[
+          { txt:'Consider/attempt SUPRAGLOTTIC AIRWAY (SGA)', correct:true,
+            effects:{}, next:()=> (Math.random()<0.6 ? 'sga_ok' : 'sga_bad') },
+          { txt:'Keep trying mask only', correct:false,
+            effects:{ dropTo:65, decay:{rate:-3.2,sec:10}, lifeNow:true, lifeMsg:'❌ Inadequate ventilation — life -1' },
+            next:()=> 'mask_bad' },
+          { txt:'Wait for sats to recover on their own', correct:false,
+            effects:{ decay:{rate:-2.8,sec:10} }, next:()=> 'mask_bad' },
+          { txt:'Give deep sedation and reassess later', correct:false,
+            effects:{ decay:{rate:-2.5,sec:10} }, next:()=> 'mask_bad' },
+        ]
+      };
+
+    case 'sga_ok':
+      return {
+        title:'SGA ventilation ADEQUATE',
+        sub:'Best next step?',
+        options:[
+          { txt:'Non-emergency path: wake patient OR intubate through SGA', correct:true,
+            effects:{ bump:6, decay:{rate:+2,sec:8} }, next:'end_safe' },
+          { txt:'Remove SGA and retry DL repeatedly', correct:false,
+            effects:{ decay:{rate:-1.8,sec:10} }, next:'mask_bad' },
+          { txt:'Go to emergency invasive airway now', correct:false,
+            effects:{}, next:'end_safe' },
+          { txt:'Turn off oxygen to avoid gastric insufflation', correct:false,
+            effects:{ decay:{rate:-2.6,sec:10} }, next:'mask_bad' },
+        ]
+      };
+
+    case 'sga_bad':
+      return {
+        title:'SGA ventilation NOT adequate — CICO evolving',
+        sub:'Next best step?',
+        options:[
+          { txt:'EMERGENCY pathway: Front-of-Neck Access (FONA), call for help', correct:true,
+            effects:{ bump:20, decay:{rate:+4,sec:10} }, next:'tube_ok' },
+          { txt:'Try a few more DL attempts first', correct:false,
+            effects:{ dropTo:60, decay:{rate:-4,sec:8}, lifeNow:true }, next:'sga_bad' },
+          { txt:'Pause and reassess later without oxygenation', correct:false,
+            effects:{ decay:{rate:-3,sec:12} }, next:'sga_bad' },
+          { txt:'Remove oxygen “to see baseline”', correct:false,
+            effects:{ decay:{rate:-5,sec:8} }, next:'sga_bad' },
+        ]
+      };
+
+    case 'tube_ok':
+      return {
+        title:'Tube placed — capnography CONFIRMED',
+        sub:'Choose the best next step:',
+        options:[
+          { txt:'Secure tube and plan EXTUBATION strategy (consider AEC if high-risk)', correct:true,
+            effects:{ bump:4, decay:{rate:+1.4,sec:8} }, next:'end_safe' },
+          { txt:'Skip capnography; rely on chest rise', correct:false, effects:{}, next:'end_safe' },
+          { txt:'Remove the tube to check positioning', correct:false, effects:{ dropTo:82 }, next:'end_safe' },
+          { txt:'Ignore securing device until later', correct:false, effects:{}, next:'end_safe' },
+        ]
+      };
+
+    case 'end_safe':
+      return {
+        title:'Case finished safely',
+        sub:`Score: ${state.score}. You maintained oxygenation and made guideline-concordant choices.`,
+        options:[ { txt:'Play again', correct:true, next:()=>{ init(); return null; } } ]
+      };
+
+    default:
+      return { title:'(Unknown)', sub:'', options:[{txt:'Restart', correct:true, next:()=>{ init(); return null; }}] };
+  }
+}
+
+/* ---------- renderer ---------- */
+function render(){
+  const step = getStep(state.stepId);
+  qa.innerHTML=''; state.locked=false;
+
+  const h = document.createElement('p'); h.className='scenario'; h.textContent = step.title;
+  const s = document.createElement('p'); s.className='sub'; s.textContent = step.sub || '';
+  qa.append(h,s);
+
+  const grid = document.createElement('div'); grid.className='grid';
+  const opts = shuffle(step.options.map(o=>({...o})));
+  opts.forEach((o,i)=>{
+    const b = document.createElement('button');
+    b.className='opt';
+    b.innerHTML = `<strong>${i+1}. ${o.txt}</strong>`;
+    b.addEventListener('click', ()=> choose(b,o,opts,grid));
+    grid.appendChild(b);
+  });
+  qa.appendChild(grid);
+
+  document.onkeydown = (e)=>{
+    if (e.key.toLowerCase()==='r'){ init(); return; }
+    if (state.locked) return;
+    const k = +e.key;
+    if (k>=1 && k<=grid.children.length){ grid.children[k-1].click(); }
+  };
+}
+
+function applyEffects(eff){
+  if (!eff) return;
+  if (typeof eff.bump   === 'number') bump(eff.bump);
+  if (typeof eff.dropTo === 'number') nudgeTo(eff.dropTo);
+  if (eff.decay){ setDecay(eff.decay.rate||0, eff.decay.sec||0); }
+  if (eff.lifeNow){ loseLife(eff.lifeMsg||'Life -1'); }
+  pushHistory(physio.spo2); updateOxUI();
+}
+
+function choose(btn, opt, all, grid){
+  if (state.locked) return; state.locked=true;
+
+  Array.from(grid.children).forEach((b,idx)=>{
+    const good = !!all[idx].correct;
+    if (good) b.classList.add('correct');
+    if (b===btn && !good) b.classList.add('wrong');
+    b.disabled = true;
+  });
+
+  // scoring + banner
+  if (opt.correct) addScore(1,'✅ Correct');
+  else setBanner('❌ Risky choice — scenario continues. Watch the SpO₂!', '#f59e0b');
+
+  // physiology side-effects
+  applyEffects(opt.effects);
+
+  // explanation bubble
+  if (opt.explain){
+    const note=document.createElement('div'); note.className='explain';
+    note.textContent = opt.explain; qa.appendChild(note);
   }
 
-  function endGame(cleared){
-    qa.innerHTML = '';
-    const h = document.createElement('h2');
-    h.style.cssText = `margin:.2rem 0 .6rem; color:${cleared?'#34d399':'#f87171'}`;
-    h.textContent = cleared ? 'Nice work! 🎉' : 'Could not intubate — patient coded.';
-    const p = document.createElement('p'); p.className='sub';
-    p.innerHTML = `Final score: <strong>${state.score}</strong>. ${cleared ? 'You completed the case safely.' : 'Review the algorithm and try again.'}`;
-    const btn = document.createElement('button'); btn.className='echo-btn'; btn.textContent='Play again';
-    btn.addEventListener('click', init);
-    const tip = document.createElement('p'); tip.className='sub';
-    tip.innerHTML = `Tip: press <span class="kbd">R</span> to restart anytime.`;
-    qa.append(h,p,btn,tip);
-    document.onkeydown = (e)=>{ if (e.key.toLowerCase()==='r' || e.key==='Enter') init(); };
-  }
+  // advance regardless of correctness
+  setTimeout(()=>{
+    state.stepCount++;
+    const nextId = typeof opt.next === 'function' ? opt.next() : opt.next;
+    if (nextId){ state.stepId = nextId; updateMeta(); setBanner(''); render(); }
+  }, opt.correct ? 780 : 980);
+}
 
-  // start
-  init();
-  </script>
+function endGame(cleared){
+  qa.innerHTML='';
+  const h=document.createElement('h2');
+  h.style.cssText=`margin:.2rem 0 .6rem;color:${cleared?'#34d399':'#f87171'}`;
+  h.textContent = cleared ? 'Nice work! 🎉' : 'Could not intubate — patient coded.';
+  const p=document.createElement('p'); p.className='sub';
+  p.innerHTML=`Final score: <strong>${state.score}</strong>. ${cleared?'You completed the case safely.':'SpO₂ hit 0% or all lives were lost. Try again.'}`;
+  const btn=document.createElement('button'); btn.className='echo-btn'; btn.textContent='Play again';
+  btn.addEventListener('click', init);
+  const tip=document.createElement('p'); tip.className='sub';
+  tip.innerHTML=`Tip: press <span class="kbd">R</span> to restart anytime.`;
+  qa.append(h,p,btn,tip);
+  document.onkeydown=(e)=>{ if (e.key.toLowerCase()==='r'||e.key==='Enter') init(); };
+}
+
+/* ---------- start ---------- */
+init();
+</script>
 </body>
 </html>
