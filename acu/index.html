@@ -11,6 +11,7 @@ filename: acu
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Acupuncture — Point Identification Game</title>
 
+  <!-- Shared site-wide CSS -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../assets/css/echo.css">
 
@@ -47,19 +48,12 @@ filename: acu
       border-radius:8px; padding:.25rem .5rem; font-weight:800; cursor:pointer;
     }
     .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
-
-    /* DEV pill */
-    .dev-pill{
-      position:absolute; right:12px; top:12px; z-index:8;
-      padding:.35rem .6rem; border-radius:8px;
-      background:rgba(2,6,23,.85); border:1px solid rgba(94,234,212,.35);
-      color:#a7f3d0; font-weight:800; font-variant-numeric:tabular-nums;
-    }
   </style>
 </head>
 <body class="echo">
+  <!-- ===== Header ===== -->
   <header class="container">
-    <h1 class="sr-only">In-Ax — Acupuncture — Game</h1>
+    <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
     <div class="nav-box">
       <div class="nav-row">
         <a class="brand" href="../" aria-label="In-Ax — home">
@@ -67,17 +61,21 @@ filename: acu
         </a>
         <nav class="tabs" aria-label="Primary">
           <a class="tab" href="../" data-match="/">Home</a>
+          <a class="tab" href="../about/" data-match="/about">About</a>
+          <a class="tab" href="../contact/" data-match="/contact">Contact</a>
           <a class="tab" href="../at/" data-match="/at">AT</a>
           <a class="tab" href="../tee/" data-match="/tee">TEE</a>
-          <a class="tab" href="../daa/" data-match="/daa">DAA</a>
           <a class="tab active" href="./" data-match="/acu">ACU</a>
-          <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
+          <a class="tab nav-disclaimer" href="../disclaimer.html" target="_self" rel="noopener">
+            <span class="label-extra">Read </span>Disclaimer
+          </a>
         </nav>
         <div class="subtitle">Tap the correct acupuncture point to advance</div>
       </div>
     </div>
   </header>
 
+  <!-- ===== Game ===== -->
   <div class="echo-root">
     <div class="echo-app">
       <div class="echo-header">
@@ -104,8 +102,6 @@ filename: acu
               <button id="hintBtn" type="button" title="Toggle visual hint">Show</button>
             </div>
 
-            <div id="devPill" class="dev-pill" hidden>DEV — 0, 0</div>
-
             <div id="flash" class="echo-flash" aria-hidden="true"></div>
             <div id="signal" class="echo-signal" aria-hidden="true"></div>
           </div>
@@ -118,10 +114,12 @@ filename: acu
           <div class="echo-controls">
             <button id="skipBtn" class="echo-link" title="Skip question">Skip</button>
             <button id="restartBtn" class="echo-link" title="Restart game">Restart</button>
+            <!-- DEV button injected here when ?dev is present -->
           </div>
         </div>
       </section>
     </div>
+
     <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
   </div>
 
@@ -130,26 +128,25 @@ filename: acu
   </footer>
 
   <script>
+    // ----- active tab + year -----
+    (function(){
+      const path = location.pathname.replace(/\/+$/,'') || '/';
+      document.querySelectorAll('.tab').forEach(a=>{
+        const match = a.getAttribute('data-match');
+        const isRoot = path==='/' || /\/index\.html$/.test(path);
+        const on = match==='/' ? isRoot : path.includes(match);
+        if(on){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
+      });
+      document.getElementById('y').textContent = new Date().getFullYear();
+    })();
+
+    // ----- tiny helpers -----
     const $ = (s,el=document)=>el.querySelector(s);
     const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
     const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]} return b};
 
-    // mark active tab & year
-    (function(){
-      const path = location.pathname.replace(/\/+$/,'') || '/';
-      document.querySelectorAll('.tab').forEach(a=>{
-        const m=a.getAttribute('data-match');
-        const isRoot = path==='/' || /\/index\.html$/.test(path);
-        const on = m==='/'?isRoot:path.includes(m);
-        if(on){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
-      });
-      $('#y').textContent = new Date().getFullYear();
-    })();
-
-    // DEV mode detection (works with ?dev, ?dev=1, ?dev=true)
-    const DEV_MODE = (()=>{ const v=new URLSearchParams(location.search).get('dev'); return v!==null && String(v).toLowerCase()!=='0' && String(v).toLowerCase()!=='false'; })();
-
-    // where your images live
+    // ----- data -----
+    // (Use your real images here; I kept your p6.png placeholder for all 3)
     const ACU_QUESTIONS = [
       {
         image: "../acu/images/p6.png",
@@ -177,6 +174,7 @@ filename: acu
       }
     ];
 
+    // ----- state -----
     let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
     let idx = 0, score = 0, showHint=false;
 
@@ -184,7 +182,6 @@ filename: acu
     const scorePill = $('#scorePill'), qPill = $('#qPill'), bar = $('#bar');
     const topBanner = $('#topBanner'), toast = $('#toast'), flash = $('#flash'), signal = $('#signal');
     const hintPill = $('#hintPill'), hintBtn = $('#hintBtn');
-    const devPill = $('#devPill');
 
     $('#skipBtn').addEventListener('click', nextQuestion);
     $('#restartBtn').addEventListener('click', restart);
@@ -230,7 +227,7 @@ filename: acu
     function restart(){
       order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
       idx = 0; score = 0; updateMeta();
-      setBanner(DEV_MODE ? 'DEV: click to copy % coords' : 'Tap the requested point', '#93c5fd');
+      setBanner('Tap the requested point', '#93c5fd');
       loadQuestion();
     }
 
@@ -267,17 +264,9 @@ filename: acu
       setBanner(q.prompt || ('Find ' + (q.label||'the point')), '#e2e8f0');
       hintPill.hidden = !q.hint && (!q.targets || !q.targets.length);
 
-      // bind handlers
+      // (re)bind click handler for normal play; dev toggle will override it
+      wrap.onclick = onGuess;
       window.onresize = drawHint;
-      if (DEV_MODE){
-        devPill.hidden = false;
-        wrap.onclick = devPick;
-        wrap.onmousemove = devHover;
-      } else {
-        devPill.hidden = true;
-        wrap.onclick = onGuess;
-        wrap.onmousemove = null;
-      }
     }
 
     // ---- normal play
@@ -302,6 +291,7 @@ filename: acu
       overlay.appendChild(dot);
       setTimeout(()=>dot.remove(), 900);
 
+      // feedback
       flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)' : 'rgba(248,113,113,.28)');
       flash.classList.add('show');
       signal.textContent = ok ? '✔' : '✖';
@@ -343,52 +333,59 @@ filename: acu
       }
     }
 
-    // ---- DEV tools
-    function devHover(e){
-      const r = wrap.getBoundingClientRect(), box = mediaBox();
-      const px = clamp(e.clientX - r.left, 0, r.width);
-      const py = clamp(e.clientY - r.top , 0, r.height);
-      const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
-      const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
-      devPill.textContent = `DEV — ${ (Math.round(xPct*10)/10).toFixed(1) }, ${ (Math.round(yPct*10)/10).toFixed(1) }`;
-    }
+    // ===== DEV coordinate picker (same behavior as TEE) =====
+    (function attachDevPicker(){
+      const DEV = new URLSearchParams(location.search).has('dev');
+      if (!DEV) return;
 
-    function devPick(e){
-      const r = wrap.getBoundingClientRect(), box = mediaBox();
-      const px = clamp(e.clientX - r.left, 0, r.width);
-      const py = clamp(e.clientY - r.top , 0, r.height);
-      const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
-      const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
-      const x = Math.round(xPct*10)/10, y = Math.round(yPct*10)/10;
-      const snippet = `{x:${x}, y:${y}}`;
+      const controls = document.querySelector('.echo-controls');
+      const devBtn = document.createElement('button');
+      devBtn.id = 'acu-devBtn';
+      devBtn.className = 'echo-link';
+      devBtn.textContent = 'Pick coords (D)';
+      controls.appendChild(devBtn);
 
-      // visible marker
-      const dot = document.createElement('div');
-      dot.className = 'acu-dot good';
-      dot.style.left = px+'px'; dot.style.top = py+'px';
-      overlay.appendChild(dot);
-      setTimeout(()=>dot.remove(), 900);
+      let devMode = false;
+      function toggleDevMode(){
+        devMode = !devMode;
+        devBtn.textContent = devMode ? 'Picking… (D to exit)' : 'Pick coords (D)';
+        showToast(devMode ? 'Tap the image to copy % coords' : 'Picker off');
 
-      // copy with fallback
-      copyText(snippet);
-      showToast('Copied: ' + snippet);
-      console.log('[ACU DEV]', snippet);
-    }
-
-    function copyText(text){
-      if (navigator.clipboard && window.isSecureContext){
-        navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
-      } else {
-        fallbackCopy(text);
+        // swap click handler
+        wrap.onclick = devMode ? devPick : onGuess;
       }
-    }
-    function fallbackCopy(text){
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.style.position='fixed'; ta.style.left='-9999px';
-      document.body.appendChild(ta); ta.focus(); ta.select();
-      try { document.execCommand('copy'); } catch(e){}
-      ta.remove();
-    }
+
+      devBtn.addEventListener('click', toggleDevMode);
+      window.addEventListener('keydown', e => {
+        if (e.key.toLowerCase() === 'd') toggleDevMode();
+      });
+
+      function devPick(e){
+        const r = wrap.getBoundingClientRect();
+        const box = mediaBox();
+
+        const px = e.clientX - r.left;
+        const py = e.clientY - r.top;
+
+        const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
+        const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
+
+        const x = Math.round(xPct * 10) / 10;
+        const y = Math.round(yPct * 10) / 10;
+        const snippet = `{x:${x}, y:${y}}`;
+
+        const dot = document.createElement('div');
+        dot.style.cssText =
+          `position:absolute;left:${px}px;top:${py}px;width:12px;height:12px;border-radius:999px;`+
+          `background:#5eead4;box-shadow:0 0 12px rgba(94,234,212,.8);`+
+          `transform:translate(-50%,-50%);pointer-events:none`;
+        overlay.appendChild(dot);
+        setTimeout(()=>dot.remove(), 900);
+
+        navigator.clipboard?.writeText(snippet).catch(()=>{});
+        showToast('Copied: ' + snippet);
+      }
+    })();
 
     // init
     restart();
