@@ -1,0 +1,387 @@
+---
+title: Acupuncture — Point ID Game
+layout: template
+filename: acu
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Acupuncture — Point Identification Game</title>
+
+  <!-- Shared site-wide CSS -->
+  <link rel="stylesheet" href="../style.css">
+  <!-- Echo game shell CSS (same one your other games use) -->
+  <link rel="stylesheet" href="../assets/css/echo.css">
+
+  <style>
+    /* Page-local styles (lightweight, reuses Echo look) */
+
+    .echo-image-wrap{ --echo-min-h: 420px; }
+
+    /* Click marker & target ring */
+    .acu-dot{
+      position:absolute; width:14px; height:14px; border-radius:999px;
+      transform:translate(-50%,-50%); z-index:6; pointer-events:none;
+      box-shadow:0 0 10px rgba(0,0,0,.35);
+    }
+    .acu-dot.bad{ background:#ef4444; }
+    .acu-dot.good{ background:#34d399; }
+    .acu-ring{
+      position:absolute; border:2px dashed rgba(94,234,212,.75);
+      border-radius:999px; transform:translate(-50%,-50%);
+      pointer-events:none; z-index:5;
+      animation: acuPulse 1.2s ease-in-out infinite;
+      box-shadow:0 0 30px rgba(94,234,212,.25), inset 0 0 12px rgba(94,234,212,.12);
+    }
+    @keyframes acuPulse{
+      0%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
+      70%{ transform:translate(-50%,-50%) scale(1.08); opacity:.6; }
+      100%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
+    }
+
+    /* Hint pill */
+    .hint-pill{
+      position:absolute; left:12px; top:12px; z-index:7;
+      padding:.45rem .7rem; border-radius:999px;
+      background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.12);
+      color:#e8eefc; font-weight:800;
+      display:flex; gap:.5rem; align-items:center;
+    }
+    .hint-pill button{
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06); color:#dbe7ff;
+      border-radius:8px; padding:.25rem .5rem; font-weight:800; cursor:pointer;
+    }
+    .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
+
+    /* Side toolbar (skip/restart) on wide screens */
+    @media (min-width: 900px){
+      .echo-controls{ justify-content:flex-end; }
+    }
+  </style>
+</head>
+<body class="echo">
+  <!-- ===== Header ===== -->
+  <header class="container">
+    <h1 class="sr-only">In-Ax — Acupuncture — Game</h1>
+    <div class="nav-box">
+      <div class="nav-row">
+        <!-- Logo -->
+        <a class="brand" href="../" aria-label="In-Ax — home">
+          <img class="logo" src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png" alt="In-Ax logo" />
+        </a>
+
+        <!-- Tabs -->
+        <nav class="tabs" aria-label="Primary">
+          <a class="tab" href="../" data-match="/">Home</a>
+          <a class="tab" href="../at/" data-match="/at">AT</a>
+          <a class="tab" href="../tee/" data-match="/tee">TEE</a>
+          <a class="tab" href="../daa/" data-match="/daa">DAA</a>
+          <a class="tab active" href="./" data-match="/acu">ACU</a>
+          <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
+        </nav>
+
+        <!-- Subtitle -->
+        <div class="subtitle">Tap the correct acupuncture point to advance</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Game shell ===== -->
+  <div class="echo-root">
+    <div class="echo-app">
+      <div class="echo-header">
+        <div class="echo-title-wrap">
+          <h1 class="echo-title">Acupuncture — Point ID</h1>
+          <span class="echo-sub">Identify the requested point on the image</span>
+        </div>
+
+        <div class="echo-meta">
+          <span id="scorePill" class="echo-pill">Score: 0</span>
+          <span id="qPill" class="echo-pill">1 / 1</span>
+        </div>
+      </div>
+
+      <section class="echo-card">
+        <div id="topBanner" class="echo-topbanner" hidden></div>
+
+        <div class="echo-stage">
+          <div id="wrap" class="echo-image-wrap">
+            <img id="img" class="echo-image" src="" alt="Acupuncture image" />
+            <div id="overlay" class="echo-overlay"></div>
+
+            <!-- Hint + controls near the image -->
+            <div class="hint-pill" id="hintPill" hidden>
+              <span>Hint</span>
+              <button id="hintBtn" type="button" title="Toggle visual hint">Show</button>
+            </div>
+
+            <!-- Feedback flashes -->
+            <div id="flash" class="echo-flash" aria-hidden="true"></div>
+            <div id="signal" class="echo-signal" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div id="answers" class="echo-answers"></div>
+
+        <div class="echo-footer">
+          <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
+          <div class="echo-controls">
+            <button id="skipBtn" class="echo-link" title="Skip question">Skip</button>
+            <button id="restartBtn" class="echo-link" title="Restart game">Restart</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <footer class="container" style="color:#93a1b7; text-align:center; padding:20px 0 28px; font-size:.9rem;">
+    © <span id="y"></span> In-Ax
+  </footer>
+
+  <script>
+    // ---------- small utilities ----------
+    const $ = (s,el=document)=>el.querySelector(s);
+    const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+    const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]} return b};
+
+    // nav active state & year
+    (function(){
+      const path = location.pathname.replace(/\/+$/,'') || '/';
+      document.querySelectorAll('.tab').forEach(a=>{
+        const m=a.getAttribute('data-match');
+        const isRoot = path==='/' || /\/index\.html$/.test(path);
+        const on = m==='/'?isRoot:path.includes(m);
+        if(on){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
+      });
+      $('#y').textContent = new Date().getFullYear();
+    })();
+
+    // ---------- data (swap these images/coords for yours) ----------
+    // TIP: put pictures in /images/acu/ and update paths below.
+    // Use ?dev=1 to pick % coordinates easily on any image.
+    const ACU_QUESTIONS = [
+      {
+        image: "../images/acu/hand_dorsum.png",
+        label: "LI4 (Hégǔ)",
+        prompt: "Tap LI4 (Hégǔ) — between 1st & 2nd metacarpals, at the highest point when the thumb & index are approximated.",
+        targets: [{x:58.5, y:61.5}], // %
+        tol: 3.2,                    // acceptance radius as % of min(imgW,imgH)
+        hint: "On the dorsum of hand between 1st–2nd metacarpals, closer to 2nd metacarpal radial side."
+      },
+      {
+        image: "../images/acu/leg_lateral.png",
+        label: "ST36 (Zúsānlǐ)",
+        prompt: "Tap ST36 (Zúsānlǐ) — ~3 cun below ST35, one finger-breadth lateral to the tibial crest.",
+        targets: [{x:47.2, y:66.8}, {x:52.8, y:66.8}], // bilateral example (either accepted)
+        tol: 3.0,
+        hint: "Find the tibial tuberosity, drop ~3 cun, slide lateral off the crest."
+      },
+      {
+        image: "../images/acu/occiput_posterior.png",
+        label: "GB20 (Fēngchí)",
+        prompt: "Tap GB20 (Fēngchí) — in the depression between SCM & trapezius, level with the occipital protuberance.",
+        targets: [{x:41.5,y:34},{x:58.5,y:34}],
+        tol: 3.0,
+        hint: "At the base of the skull in the groove between the two muscles. Either side is correct."
+      }
+    ];
+
+    // ---------- state ----------
+    let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
+    let idx = 0, score = 0, showHint=false;
+
+    const wrap = $('#wrap'), img = $('#img'), overlay = $('#overlay');
+    const scorePill = $('#scorePill'), qPill = $('#qPill'), bar = $('#bar');
+    const topBanner = $('#topBanner'), toast = $('#toast'), flash = $('#flash'), signal = $('#signal');
+    const hintPill = $('#hintPill'), hintBtn = $('#hintBtn');
+    const answers = $('#answers'); // (unused here, but kept for parity)
+    $('#skipBtn').addEventListener('click', nextQuestion);
+    $('#restartBtn').addEventListener('click', restart);
+    hintBtn.addEventListener('click', ()=>{ showHint=!showHint; hintBtn.textContent = showHint?'Hide':'Show'; drawHint(); });
+
+    // DEV: coordinate picker (?dev=1)
+    const DEV = new URLSearchParams(location.search).has('dev');
+
+    // ---------- helpers for sizing ----------
+    function setAspectFromImg(){
+      if (img.naturalWidth && img.naturalHeight){
+        wrap.style.setProperty('--echo-ar', `${img.naturalWidth} / ${img.naturalHeight}`);
+      }
+    }
+    function mediaBox(){
+      const r = wrap.getBoundingClientRect();
+      const natW = img.naturalWidth, natH = img.naturalHeight;
+      if (!natW || !natH) return {x:0,y:0,w:r.width,h:r.height};
+      const mediaAR = natW/natH, wrapAR = r.width/r.height;
+      if (wrapAR > mediaAR){
+        const h=r.height, w=h*mediaAR, x=(r.width-w)/2;
+        return {x, y:0, w, h};
+      } else {
+        const w=r.width, h=w/mediaAR, y=(r.height-h)/2;
+        return {x:0, y, w, h};
+      }
+    }
+
+    function updateMeta(){
+      scorePill.textContent = `Score: ${score}`;
+      qPill.textContent     = `${idx+1} / ${order.length}`;
+      const pct = (idx / order.length) * 100;
+      bar.style.inset = `0 ${100-pct}% 0 0`;
+    }
+    function setBanner(txt='', color=''){
+      topBanner.textContent = txt;
+      topBanner.hidden = !txt;
+      topBanner.style.color = color || '';
+    }
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('echo-show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> toast.classList.remove('echo-show'), 1400);
+    }
+
+    // ---------- main flows ----------
+    function restart(){
+      order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
+      idx = 0; score = 0; updateMeta();
+      setBanner('New round — tap the requested point', '#93c5fd');
+      loadQuestion();
+    }
+
+    function nextQuestion(){
+      if (idx < order.length - 1){
+        idx += 1; updateMeta(); loadQuestion();
+      } else {
+        finish();
+      }
+    }
+
+    function finish(){
+      overlay.innerHTML = '';
+      const done = document.createElement('div');
+      done.style.padding='20px';
+      done.innerHTML = `<h2 style="margin:.2rem 0 .6rem;color:#e6edf9">Nice work! 🎉</h2>
+        <p style="color:#cbd5e1">You scored <strong>${score}</strong> / ${order.length}.</p>
+        <button class="echo-btn" type="button">Play again</button>`;
+      done.querySelector('button').addEventListener('click', restart);
+      overlay.appendChild(done);
+      showToast('Round complete');
+    }
+
+    function loadQuestion(){
+      overlay.innerHTML = '';
+      showHint = false; hintBtn.textContent='Show';
+      const q = ACU_QUESTIONS[order[idx]];
+
+      img.onload = ()=>{ setAspectFromImg(); drawHint(); };
+      img.onerror = ()=> showToast('⚠️ Image failed to load');
+      img.src = q.image;
+      img.alt = q.label || 'Acupuncture point image';
+
+      setAspectFromImg();
+      updateMeta();
+
+      // banner + little hint pill
+      setBanner(q.prompt || ('Find ' + (q.label||'the point')), '#e2e8f0');
+      hintPill.hidden = !q.hint && (!q.targets || !q.targets.length);
+
+      // click to guess
+      wrap.onclick = onGuess;
+      window.onresize = drawHint;
+
+      // DEV: copy coords on click
+      if (DEV){
+        wrap.addEventListener('click', devCopyOnce);
+      }
+    }
+
+    function onGuess(e){
+      const q = ACU_QUESTIONS[order[idx]];
+      const r = wrap.getBoundingClientRect(), box = mediaBox();
+      const px = clamp(e.clientX - r.left, 0, r.width);
+      const py = clamp(e.clientY - r.top , 0, r.height);
+      // normalize to % within the media box
+      const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
+      const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
+
+      // evaluate against any of the allowed targets
+      const tolPx = (q.tol ?? 3) / 100 * Math.min(box.w, box.h);
+      const ok = (q.targets||[]).some(t=>{
+        const dx = (xPct - t.x) * box.w/100;
+        const dy = (yPct - t.y) * box.h/100;
+        return Math.hypot(dx,dy) <= tolPx;
+      });
+
+      // marker
+      const dot = document.createElement('div');
+      dot.className = 'acu-dot ' + (ok?'good':'bad');
+      dot.style.left = px+'px'; dot.style.top = py+'px';
+      overlay.appendChild(dot);
+      setTimeout(()=>dot.remove(), 900);
+
+      // feedback
+      flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)' : 'rgba(248,113,113,.28)');
+      flash.classList.add('show');
+      signal.textContent = ok ? '✔' : '✖';
+      signal.classList.toggle('ok', ok);
+      signal.classList.toggle('no', !ok);
+      signal.classList.add('show');
+      setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); }, 600);
+
+      if (ok){
+        score += 1; scorePill.textContent = `Score: ${score}`;
+        setBanner('✅ Correct — ' + (q.label || 'good pick'), '#34d399');
+        setTimeout(()=>{ setBanner(''); nextQuestion(); }, 700);
+      } else {
+        setBanner('❌ Not quite — try again or toggle a hint', '#f87171');
+      }
+    }
+
+    function drawHint(){
+      const q = ACU_QUESTIONS[order[idx]];
+      overlay.querySelectorAll('.acu-ring').forEach(el=>el.remove());
+      if (!showHint || !q || !q.targets || !q.targets.length) return;
+      const box = mediaBox();
+      const tolPx = (q.tol ?? 3) / 100 * Math.min(box.w, box.h);
+      q.targets.forEach(t=>{
+        const rx = box.x + (t.x/100)*box.w;
+        const ry = box.y + (t.y/100)*box.h;
+        const ring = document.createElement('div');
+        ring.className = 'acu-ring';
+        ring.style.left = rx+'px';
+        ring.style.top  = ry+'px';
+        ring.style.width  = ring.style.height = (tolPx*2.2)+'px';
+        overlay.appendChild(ring);
+      });
+      if (q.hint){
+        const p = document.createElement('p');
+        p.className = 'hint-text';
+        p.textContent = q.hint;
+        overlay.appendChild(p);
+      }
+    }
+
+    function devCopyOnce(ev){
+      if (!DEV) return;
+      const r = wrap.getBoundingClientRect(), box = mediaBox();
+      const px = ev.clientX - r.left;
+      const py = ev.clientY - r.top;
+      const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
+      const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
+      const x = Math.round(xPct*10)/10, y = Math.round(yPct*10)/10;
+      const snippet = `{x:${x}, y:${y}}`;
+      navigator.clipboard?.writeText(snippet).catch(()=>{});
+      showToast('Copied: ' + snippet);
+    }
+
+    // init
+    restart();
+  </script>
+</body>
+</html>
