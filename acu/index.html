@@ -17,10 +17,15 @@ filename: acu
   <style>
     :root{ --drawer-w: clamp(320px, 28vw, 420px); }
 
-    .echo-image-wrap{ --echo-min-h: 420px; }
+    /* ===== Layout: put the game at left and the research drawer at right ===== */
+    .game-grid{ display:grid; grid-template-columns: 1fr; gap:16px; align-items:start; }
+    .game-grid.with-research{ grid-template-columns: 1fr var(--drawer-w); }
+    @media (max-width:1100px){ .game-grid.with-research{ grid-template-columns:1fr; } }
 
-    /* Reserve space for the right drawer so it’s not over the image */
-    .echo-card.has-drawer .echo-stage{ margin-right: var(--drawer-w); }
+    .research-col{ position:sticky; top:12px; align-self:start; }
+    .research-col[hidden]{ display:none; }
+
+    .echo-image-wrap{ --echo-min-h: 420px; }
 
     /* --- click feedback dots --- */
     .acu-dot{
@@ -72,49 +77,35 @@ filename: acu
     }
     .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
 
-    /* --- Right-docked research drawer --- */
-    .echo-card{ position:relative; }
-    .rd{
-      position:absolute; right:12px; top:50%; transform:translateY(-50%);
-      z-index:9; display:flex; align-items:center; gap:10px;
-      width:var(--drawer-w);
-      pointer-events:none;
-    }
-    .rd-tab{
-      pointer-events:auto;
-      background:rgba(2,6,23,.85);
-      border:1px solid rgba(94,234,212,.35);
-      color:#a7f3d0; font-weight:900;
-      padding:.55rem .6rem; border-radius:10px 0 0 10px;
-      cursor:pointer; writing-mode:vertical-rl; text-orientation:mixed;
-      letter-spacing:.4px; user-select:none;
-      box-shadow:0 10px 30px rgba(0,0,0,.35);
-      transition:transform .12s ease;
-    }
-    .rd-tab:hover{ transform:translateX(-2px); }
+    /* ===== Right column drawer (collapsible card) ===== */
     .rd-card{
-      pointer-events:auto;
-      width:calc(var(--drawer-w) - 44px);
-      max-height:min(70vh, 560px);
-      overflow:auto; border-radius:14px;
+      border-radius:14px;
       background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
       border:1px solid rgba(255,255,255,.12);
       box-shadow:0 20px 50px rgba(0,0,0,.45);
-      padding:14px; color:#e6edf9;
-      transform:translateX(10px); opacity:0; pointer-events:none;
-      transition:transform .18s ease, opacity .18s ease;
+      color:#e6edf9;
+      overflow:hidden;
     }
-    .rd.open .rd-card{ transform:none; opacity:1; pointer-events:auto; }
-    .rd-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+    .rd-head{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; padding:12px 14px;
+      cursor:pointer; user-select:none;
+    }
+    .rd-left{ display:flex; align-items:center; gap:10px; min-width:0; }
     .rd-pill{
       padding:.25rem .5rem; border-radius:999px;
       background:rgba(94,234,212,.15);
       border:1px solid rgba(94,234,212,.35);
-      color:#99f6e4; font-size:.8rem; font-weight:800;
+      color:#99f6e4; font-size:.8rem; font-weight:800; flex:0 0 auto;
     }
-    .rd-title{ font-weight:900; letter-spacing:.2px; }
-    .rd-body{ color:#cbd5e1; font-size:.95rem; line-height:1.45; margin-top:6px; }
-    .rd-actions{ display:flex; gap:10px; margin-top:12px; justify-content:flex-end; flex-wrap:wrap; }
+    .rd-title{ font-weight:900; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rd-chevron{ font-weight:900; opacity:.85; }
+
+    .rd-body{ padding:0 14px 12px; color:#cbd5e1; font-size:.95rem; line-height:1.45; display:none; }
+    .rd-actions{ display:flex; gap:10px; padding:0 14px 14px; justify-content:flex-end; flex-wrap:wrap; display:none; }
+
+    .rd-card.open .rd-body, .rd-card.open .rd-actions{ display:block; }
+
     .btn{
       border:1px solid rgba(255,255,255,.16);
       background:rgba(255,255,255,.06);
@@ -125,15 +116,10 @@ filename: acu
     .btn-primary{ background:#1e293b; border-color:rgba(94,234,212,.35); }
     .btn-link{ text-decoration:none; display:inline-flex; align-items:center; gap:.5rem; }
     .btn .ext{ font-size:1.05em; opacity:.9; }
-
-    @media (max-width: 1100px){
-      .echo-card.has-drawer .echo-stage{ margin-right: 0; }
-      .rd{ right:8px; top:auto; bottom:12px; transform:none; width:min(92vw,520px); }
-      .rd-card{ width:calc(min(92vw,520px) - 44px); }
-    }
   </style>
 </head>
 <body class="echo">
+  <!-- ===== Header ===== -->
   <header class="container">
     <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
     <div class="nav-box">
@@ -157,8 +143,10 @@ filename: acu
     </div>
   </header>
 
+  <!-- ===== Game + Right Column ===== -->
   <div class="echo-root">
     <div class="echo-app">
+
       <div class="echo-header">
         <div class="echo-title-wrap">
           <h1 class="echo-title">Acupuncture — Point ID</h1>
@@ -170,34 +158,40 @@ filename: acu
         </div>
       </div>
 
-      <section class="echo-card">
-        <div id="topBanner" class="echo-topbanner" hidden></div>
+      <div id="grid" class="game-grid">
+        <!-- LEFT: game card -->
+        <section class="echo-card" id="gameCard">
+          <div id="topBanner" class="echo-topbanner" hidden></div>
 
-        <div class="echo-stage">
-          <div id="wrap" class="echo-image-wrap">
-            <img id="img" class="echo-image" src="" alt="Acupuncture image" />
-            <div id="overlay" class="echo-overlay"></div>
+          <div class="echo-stage">
+            <div id="wrap" class="echo-image-wrap">
+              <img id="img" class="echo-image" src="" alt="Acupuncture image" />
+              <div id="overlay" class="echo-overlay"></div>
 
-            <div class="hint-pill" id="hintPill" hidden>
-              <span>Hint</span>
-              <button id="hintBtn" type="button" title="Toggle visual hint">Show</button>
+              <div class="hint-pill" id="hintPill" hidden>
+                <span>Hint</span>
+                <button id="hintBtn" type="button" title="Toggle visual hint">Show</button>
+              </div>
+
+              <div id="flash" class="echo-flash" aria-hidden="true"></div>
+              <div id="signal" class="echo-signal" aria-hidden="true"></div>
             </div>
-
-            <div id="flash" class="echo-flash" aria-hidden="true"></div>
-            <div id="signal" class="echo-signal" aria-hidden="true"></div>
           </div>
-        </div>
 
-        <div id="answers" class="echo-answers"></div>
+          <div id="answers" class="echo-answers"></div>
 
-        <div class="echo-footer">
-          <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
-          <div class="echo-controls">
-            <button id="skipBtn" class="echo-link" title="Skip question">Skip</button>
-            <button id="restartBtn" class="echo-link" title="Restart">Restart</button>
+          <div class="echo-footer">
+            <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
+            <div class="echo-controls">
+              <button id="skipBtn" class="echo-link" title="Skip question">Skip</button>
+              <button id="restartBtn" class="echo-link" title="Restart">Restart</button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <!-- RIGHT: research drawer column -->
+        <aside id="researchCol" class="research-col" hidden></aside>
+      </div>
     </div>
 
     <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
@@ -208,7 +202,7 @@ filename: acu
   </footer>
 
   <script>
-    // active tab + year
+    // mark active tab + year
     (function(){
       const path = location.pathname.replace(/\/+$/,'') || '/';
       document.querySelectorAll('.tab').forEach(a=>{
@@ -223,8 +217,7 @@ filename: acu
     // helpers
     const $=(s,el=document)=>el.querySelector(s);
     const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-    const shuffle=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}; // fixed
-
+    const shuffle=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b};
     const escapeHTML = (str)=>String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
 
     // data
@@ -267,6 +260,9 @@ filename: acu
     // state
     let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
     let idx=0, score=0, showHint=false, fixedMarker=null;
+
+    const grid=$('#grid');
+    const researchCol=$('#researchCol');
 
     const wrap=$('#wrap'), img=$('#img'), overlay=$('#overlay');
     const scorePill=$('#scorePill'), qPill=$('#qPill'), bar=$('#bar');
@@ -318,6 +314,7 @@ filename: acu
       order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
       idx=0; score=0; fixedMarker=null; updateMeta();
       setBanner('Tap the requested point', '#93c5fd');
+      removeResearchDrawer();
       loadQuestion();
     }
 
@@ -339,7 +336,7 @@ filename: acu
     }
 
     function loadQuestion(){
-      overlay.innerHTML=''; removeResearchDrawer();
+      overlay.innerHTML=''; fixedMarker=null;
       showHint=false; hintBtn.textContent='Show';
       const q = ACU_QUESTIONS[order[idx]];
 
@@ -388,7 +385,7 @@ filename: acu
         score++; scorePill.textContent = `Score: ${score}`;
         setBanner('✅ Correct — '+(q.label||'good pick'), '#34d399');
 
-        // lock a persistent marker at the *true* nearest target
+        // persistent marker at the true target
         fixedMarker = nearest.t;
         placeMarker();
 
@@ -425,7 +422,7 @@ filename: acu
       placeMarker();
     }
 
-    // persistent marker positioning
+    // persistent marker (reposition on resize)
     function placeMarker(){
       const dotEl=document.getElementById('acuMarkerDot');
       const ringEl=document.getElementById('acuMarkerRing');
@@ -441,42 +438,41 @@ filename: acu
       r.style.left=rx+'px'; r.style.top=ry+'px';
     }
 
-    // right drawer
+    // ===== Right-column drawer =====
     function removeResearchDrawer(){
-      document.querySelector('.rd')?.remove();
-      document.querySelector('.echo-card')?.classList.remove('has-drawer');
+      researchCol.innerHTML=''; researchCol.hidden = true;
+      grid.classList.remove('with-research');
     }
     function showResearchDrawer(ref, onContinue){
-      const host=document.querySelector('.echo-card');
-      host.classList.add('has-drawer');
-
-      const rd=document.createElement('div');
-      rd.className='rd open'; rd.id='rd';
-
-      const tab=document.createElement('button');
-      tab.className='rd-tab'; tab.type='button'; tab.title='Show/Hide details';
-      tab.textContent='Learn more';
+      grid.classList.add('with-research');
+      researchCol.hidden = false;
 
       const card=document.createElement('div');
-      card.className='rd-card';
-      card.innerHTML=`
-        <div class="rd-head">
-          <span class="rd-pill">Research</span>
-          <span class="rd-title">${escapeHTML(ref.title||'Related article')}</span>
+      card.className='rd-card open';
+      card.innerHTML = `
+        <div class="rd-head" id="rdToggle">
+          <div class="rd-left">
+            <span class="rd-pill">Research</span>
+            <div class="rd-title">${escapeHTML(ref.title || 'Related article')}</div>
+          </div>
+          <div class="rd-chevron">▾</div>
         </div>
-        <div class="rd-body">${escapeHTML(ref.blurb||'Explore clinical research for this point.')}</div>
+        <div class="rd-body">${escapeHTML(ref.blurb || 'Explore clinical research for this point.')}</div>
         <div class="rd-actions">
           <a class="btn btn-link" href="${ref.href}" target="_blank" rel="noopener">Open article <span class="ext">↗</span></a>
-          <button class="btn btn-primary" type="button">Next question</button>
+          <button class="btn btn-primary" type="button" id="rdNext">Next question</button>
         </div>`;
+      researchCol.appendChild(card);
 
-      rd.appendChild(tab); rd.appendChild(card); host.appendChild(rd);
-
-      tab.addEventListener('click', ()=> rd.classList.toggle('open'));
-      card.querySelector('button').addEventListener('click', ()=>{ removeResearchDrawer(); onContinue?.(); });
+      const toggle = card.querySelector('#rdToggle');
+      toggle.addEventListener('click', ()=>{
+        card.classList.toggle('open');
+        card.querySelector('.rd-chevron').textContent = card.classList.contains('open') ? '▾' : '▸';
+      });
+      card.querySelector('#rdNext').addEventListener('click', ()=>{ removeResearchDrawer(); onContinue?.(); });
     }
 
-    // go!
+    // start
     restart();
   </script>
 </body>
