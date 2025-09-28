@@ -52,39 +52,49 @@ filename: acu
     }
     .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
 
-    /* Research overlay (sleek modal) */
-    .research-backdrop{
-      position:absolute; inset:0; z-index:20;
-      background:rgba(2,6,23,.55);
-      backdrop-filter: blur(3px);
-      display:flex; align-items:center; justify-content:center;
-      animation: fadeIn .18s ease;
+    /* -------- Right-side research drawer (no blur) -------- */
+    .rd{
+      position:absolute; right:8px; top:50%; transform:translateY(-50%);
+      z-index:9; display:flex; align-items:center; gap:8px;
+      pointer-events:none; /* container ignores clicks; children re-enable */
     }
-    .research-card{
-      width:min(560px, 92vw);
-      border-radius:16px;
-      background:linear-gradient(180deg, rgba(15,23,42,.96), rgba(15,23,42,.92));
+    .rd-tab{
+      pointer-events:auto;
+      background:rgba(2,6,23,.85);
+      border:1px solid rgba(94,234,212,.35);
+      color:#a7f3d0; font-weight:900;
+      padding:.55rem .6rem; border-radius:10px 0 0 10px;
+      cursor:pointer; writing-mode:vertical-rl; text-orientation:mixed;
+      letter-spacing:.4px; user-select:none;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      transition:transform .12s ease, opacity .12s ease;
+    }
+    .rd-tab:hover{ transform:translateX(-2px); }
+
+    .rd-card{
+      pointer-events:auto;
+      width:min(500px, 90vw);
+      max-height:min(70vh, 540px);
+      overflow:auto;
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
       border:1px solid rgba(255,255,255,.12);
-      box-shadow: 0 20px 50px rgba(0,0,0,.45);
-      padding:16px;
-      color:#e6edf9;
-      animation: rise .18s ease;
+      box-shadow:0 20px 50px rgba(0,0,0,.45);
+      padding:14px; color:#e6edf9;
+      transform:translateX(8px); opacity:0; pointer-events:none;
+      transition:transform .18s ease, opacity .18s ease;
     }
-    .research-head{
-      display:flex; align-items:center; gap:10px; margin-bottom:6px;
-      font-weight:900; letter-spacing:.2px;
-    }
-    .research-pill{
+    .rd.open .rd-card{ transform:none; opacity:1; pointer-events:auto; }
+    .rd-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+    .rd-pill{
       padding:.25rem .5rem; border-radius:999px;
       background:rgba(94,234,212,.15);
       border:1px solid rgba(94,234,212,.35);
       color:#99f6e4; font-size:.8rem; font-weight:800;
     }
-    .research-body{ color:#cbd5e1; font-size:.95rem; line-height:1.45; }
-    .research-actions{
-      display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+    .rd-title{ font-weight:900; letter-spacing:.2px; }
+    .rd-body{ color:#cbd5e1; font-size:.95rem; line-height:1.45; margin-top:6px; }
+    .rd-actions{ display:flex; gap:10px; margin-top:12px; justify-content:flex-end; flex-wrap:wrap; }
     .btn{
       border:1px solid rgba(255,255,255,.16);
       background:rgba(255,255,255,.06);
@@ -92,15 +102,9 @@ filename: acu
       cursor:pointer; transition: transform .12s ease, border-color .12s ease, background .12s ease;
     }
     .btn:hover{ transform:translateY(-1px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.1); }
-    .btn-primary{
-      background:#1e293b; border-color:rgba(94,234,212,.35);
-    }
-    .btn-link{
-      text-decoration:none; display:inline-flex; align-items:center; gap:.5rem;
-    }
+    .btn-primary{ background:#1e293b; border-color:rgba(94,234,212,.35); }
+    .btn-link{ text-decoration:none; display:inline-flex; align-items:center; gap:.5rem; }
     .btn .ext{ font-size:1.05em; opacity:.9; }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    @keyframes rise { from{transform:translateY(6px); opacity:.9} to{transform:none; opacity:1} }
   </style>
 </head>
 <body class="echo">
@@ -197,9 +201,9 @@ filename: acu
     const $ = (s,el=document)=>el.querySelector(s);
     const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
     const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]} return b};
+    const escapeHTML = (str)=>String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
 
     // ----- data -----
-    // Add a `ref` with a PubMed/PMCID link or a curated article per point.
     const ACU_QUESTIONS = [
       {
         image: "../acu/images/p6.png",
@@ -255,6 +259,24 @@ filename: acu
     $('#restartBtn').addEventListener('click', restart);
     hintBtn.addEventListener('click', ()=>{ showHint=!showHint; hintBtn.textContent = showHint?'Hide':'Show'; drawHint(); });
 
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('echo-show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> toast.classList.remove('echo-show'), 1500);
+    }
+    function setBanner(txt='', color=''){
+      topBanner.textContent = txt;
+      topBanner.hidden = !txt;
+      topBanner.style.color = color || '';
+    }
+    function updateMeta(){
+      scorePill.textContent = `Score: ${score}`;
+      qPill.textContent     = `${idx+1} / ${order.length}`;
+      const pct = (idx / order.length) * 100;
+      bar.style.inset = `0 ${100-pct}% 0 0`;
+    }
+
     function setAspectFromImg(){
       if (img.naturalWidth && img.naturalHeight){
         wrap.style.setProperty('--echo-ar', `${img.naturalWidth} / ${img.naturalHeight}`);
@@ -274,24 +296,6 @@ filename: acu
       }
     }
 
-    function updateMeta(){
-      scorePill.textContent = `Score: ${score}`;
-      qPill.textContent     = `${idx+1} / ${order.length}`;
-      const pct = (idx / order.length) * 100;
-      bar.style.inset = `0 ${100-pct}% 0 0`;
-    }
-    function setBanner(txt='', color=''){
-      topBanner.textContent = txt;
-      topBanner.hidden = !txt;
-      topBanner.style.color = color || '';
-    }
-    function showToast(msg){
-      toast.textContent = msg;
-      toast.classList.add('echo-show');
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(()=> toast.classList.remove('echo-show'), 1500);
-    }
-
     function restart(){
       order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
       idx = 0; score = 0; updateMeta();
@@ -300,6 +304,7 @@ filename: acu
     }
 
     function nextQuestion(){
+      removeResearchDrawer();
       if (idx < order.length - 1){
         idx += 1; updateMeta(); loadQuestion();
       } else {
@@ -318,6 +323,7 @@ filename: acu
     // ---- load one question
     function loadQuestion(){
       overlay.innerHTML = '';
+      removeResearchDrawer();
       showHint = false; hintBtn.textContent='Show';
       const q = ACU_QUESTIONS[order[idx]];
 
@@ -332,7 +338,6 @@ filename: acu
       setBanner(q.prompt || ('Find ' + (q.label||'the point')), '#e2e8f0');
       hintPill.hidden = !q.hint && (!q.targets || !q.targets.length);
 
-      // (re)bind click handler for normal play; dev toggle will override it
       wrap.onclick = onGuess;
       window.onresize = drawHint;
     }
@@ -371,9 +376,9 @@ filename: acu
       if (ok){
         score += 1; scorePill.textContent = `Score: ${score}`;
         setBanner('✅ Correct — ' + (q.label || 'good pick'), '#34d399');
-        // NEW: research overlay (if available)
         if (q.ref && q.ref.href){
-          showResearch(q.ref, ()=>{ setBanner(''); nextQuestion(); });
+          // pause advancement; show right-side drawer
+          showResearchDrawer(q.ref, ()=>{ setBanner(''); nextQuestion(); });
         } else {
           setTimeout(()=>{ setBanner(''); nextQuestion(); }, 700);
         }
@@ -406,50 +411,54 @@ filename: acu
       }
     }
 
-    // ---- sleek research overlay ----
-    function showResearch(ref, onContinue){
-      // backdrop
-      const back = document.createElement('div');
-      back.className = 'research-backdrop';
-      back.setAttribute('role','dialog');
-      back.setAttribute('aria-modal','true');
+    /* -------- Right-side research drawer logic -------- */
+    function removeResearchDrawer(){
+      document.getElementById('rd')?.remove();
+    }
+    function showResearchDrawer(ref, onContinue){
+      const stage = document.querySelector('.echo-stage');
+      removeResearchDrawer();
+
+      // shell
+      const rd = document.createElement('div');
+      rd.id = 'rd';
+      rd.className = 'rd open';
+
+      // tab
+      const tab = document.createElement('button');
+      tab.className = 'rd-tab';
+      tab.type = 'button';
+      tab.title = 'Show/Hide details';
+      tab.textContent = 'Learn more';
+      rd.appendChild(tab);
 
       // card
       const card = document.createElement('div');
-      card.className = 'research-card';
+      card.className = 'rd-card';
       card.innerHTML = `
-        <div class="research-head">
-          <span class="research-pill">Learn more</span>
-          <span style="opacity:.9">About this point</span>
+        <div class="rd-head">
+          <span class="rd-pill">Research</span>
+          <span class="rd-title">${escapeHTML(ref.title || 'Related article')}</span>
         </div>
-        <div class="research-body">
-          <div style="font-weight:800; margin-bottom:4px;">${escapeHTML(ref.title || 'Research article')}</div>
-          <div style="opacity:.9">${escapeHTML(ref.blurb || 'Explore clinical research for this point.')}</div>
-        </div>
-        <div class="research-actions">
-          <a class="btn btn-link" href="${ref.href}" target="_blank" rel="noopener">
-            Open article <span class="ext">↗</span>
-          </a>
+        <div class="rd-body">${escapeHTML(ref.blurb || 'Explore clinical research for this point.')}</div>
+        <div class="rd-actions">
+          <a class="btn btn-link" href="${ref.href}" target="_blank" rel="noopener">Open article <span class="ext">↗</span></a>
           <button class="btn btn-primary" type="button">Next question</button>
         </div>
       `;
-      back.appendChild(card);
-      overlay.appendChild(back);
+      rd.appendChild(card);
 
+      // mount
+      stage.style.position = stage.style.position || 'relative';
+      stage.appendChild(rd);
+
+      // interactions
       const nextBtn = card.querySelector('button');
-      const clean = ()=>{
-        back.remove();
-        onContinue?.();
-      };
-      nextBtn.addEventListener('click', clean);
-      back.addEventListener('click', (e)=>{ if (e.target === back) clean(); });
-      window.addEventListener('keydown', escHandler);
-      function escHandler(e){ if(e.key==='Escape'){ window.removeEventListener('keydown', escHandler); clean(); } }
-    }
+      tab.addEventListener('click', ()=> rd.classList.toggle('open'));
+      nextBtn.addEventListener('click', ()=> { removeResearchDrawer(); onContinue?.(); });
 
-    // simple escape for innerHTML usage in the overlay
-    function escapeHTML(str){
-      return String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+      // auto-focus next for quick flow
+      nextBtn.focus({preventScroll:true});
     }
 
     // ===== DEV coordinate picker (toggle with ?dev and D key) =====
@@ -470,7 +479,6 @@ filename: acu
         devBtn.textContent = devMode ? 'Picking… (D to exit)' : 'Pick coords (D)';
         showToast(devMode ? 'Tap the image to copy % coords' : 'Picker off');
 
-        // swap click handler
         wrap.onclick = devMode ? devPick : onGuess;
       }
 
@@ -505,6 +513,9 @@ filename: acu
     })();
 
     // init
+    updateMeta();
+    setBanner('Tap the requested point', '#93c5fd');
+    (function(){ img.onload = ()=>{ setAspectFromImg(); drawHint(); }; img.src = ACU_QUESTIONS[0].image; })(); // preload aspect
     restart();
   </script>
 </body>
