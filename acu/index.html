@@ -39,6 +39,19 @@ filename: acu
       100%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
     }
 
+    /* persistent marker (stays after correct tap) */
+    .acu-lock-ring{
+      position:absolute; border:2px solid rgba(94,234,212,.9);
+      border-radius:999px; transform:translate(-50%,-50%);
+      pointer-events:none; z-index:7;
+      box-shadow:0 0 22px rgba(94,234,212,.35);
+    }
+    .acu-lock-dot{
+      position:absolute; width:12px; height:12px; border-radius:999px;
+      transform:translate(-50%,-50%); z-index:8; pointer-events:none;
+      background:#34d399; box-shadow:0 0 12px rgba(34,197,94,.75);
+    }
+
     .hint-pill{
       position:absolute; left:12px; top:12px; z-index:7;
       padding:.45rem .7rem; border-radius:999px;
@@ -52,11 +65,13 @@ filename: acu
     }
     .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
 
-    /* -------- Right-side research drawer (no blur) -------- */
+    /* -------- Right-docked research panel (outside image) -------- */
+    .echo-card{ position:relative; } /* host for docking */
     .rd{
-      position:absolute; right:8px; top:50%; transform:translateY(-50%);
-      z-index:9; display:flex; align-items:center; gap:8px;
-      pointer-events:none; /* container ignores clicks; children re-enable */
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      z-index:9; display:flex; align-items:center; gap:10px;
+      pointer-events:none; /* container: ignore; children re-enable */
+      max-width:32vw;
     }
     .rd-tab{
       pointer-events:auto;
@@ -73,15 +88,15 @@ filename: acu
 
     .rd-card{
       pointer-events:auto;
-      width:min(500px, 90vw);
-      max-height:min(70vh, 540px);
+      width:clamp(320px, 28vw, 420px);
+      max-height:min(70vh, 560px);
       overflow:auto;
       border-radius:14px;
       background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
       border:1px solid rgba(255,255,255,.12);
       box-shadow:0 20px 50px rgba(0,0,0,.45);
       padding:14px; color:#e6edf9;
-      transform:translateX(8px); opacity:0; pointer-events:none;
+      transform:translateX(10px); opacity:0; pointer-events:none;
       transition:transform .18s ease, opacity .18s ease;
     }
     .rd.open .rd-card{ transform:none; opacity:1; pointer-events:auto; }
@@ -105,6 +120,12 @@ filename: acu
     .btn-primary{ background:#1e293b; border-color:rgba(94,234,212,.35); }
     .btn-link{ text-decoration:none; display:inline-flex; align-items:center; gap:.5rem; }
     .btn .ext{ font-size:1.05em; opacity:.9; }
+
+    /* On narrow screens, let it overlay to avoid layout crunch */
+    @media (max-width: 1100px){
+      .rd{ right:8px; top:auto; bottom:12px; transform:none; max-width:92vw; }
+      .rd-card{ width:min(92vw, 520px); }
+    }
   </style>
 </head>
 <body class="echo">
@@ -170,8 +191,7 @@ filename: acu
           <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
           <div class="echo-controls">
             <button id="skipBtn" class="echo-link" title="Skip question">Skip</button>
-            <button id="restartBtn" class="echo-link" title="Restart game">Restart</button>
-            <!-- DEV button injected here when ?dev is present -->
+            <button id="restartBtn" class="echo-link" title="Restart">Restart</button>
           </div>
         </div>
       </section>
@@ -200,29 +220,29 @@ filename: acu
     // ----- tiny helpers -----
     const $ = (s,el=document)=>el.querySelector(s);
     const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-    const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]} return b};
+    const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j]]; } return b};
     const escapeHTML = (str)=>String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
 
     // ----- data -----
     const ACU_QUESTIONS = [
       {
         image: "../acu/images/p6.png",
-        label: "P6",
-        prompt: "Tap P6 (Nei guan)",
-        targets: [{x:42, y:43.4}],
+        label: "LI4 (Hégǔ)",
+        prompt: "Tap LI4 (Hégǔ) — between 1st & 2nd metacarpals.",
+        targets: [{x:58.5, y:61.5}],
         tol: 3.2,
-        hint: "The point is found three finger-widths away from the wrist, roughly in the middle of the forearm.",
+        hint: "On the dorsum between 1st–2nd metacarpals; closer to 2nd metacarpal radial side.",
         ref: {
-          title: "Stimulation of the wrist acupuncture point P6 for preventing postoperative nausea and vomiting",
-          href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3113464/",
-          blurb: "P6 acupoint stimulation prevented PONV."
+          title: "Analgesic effects of LI4 acupressure",
+          href: "https://pubmed.ncbi.nlm.nih.gov/?term=LI4+acupressure+analgesia",
+          blurb: "Evidence base exploring LI4 stimulation for pain modulation and peri-procedural analgesia."
         }
       },
       {
         image: "../acu/images/p6.png",
         label: "ST36 (Zúsānlǐ)",
         prompt: "Tap ST36 — ~3 cun below ST35, one finger lateral to tibial crest.",
-        targets: [{x:42, y:43.4}, {x:52.8, y:66.8}],
+        targets: [{x:47.2, y:66.8}, {x:52.8, y:66.8}],
         tol: 3.0,
         hint: "Find tibial tuberosity, drop ~3 cun, slide lateral off the crest.",
         ref: {
@@ -235,7 +255,7 @@ filename: acu
         image: "../acu/images/p6.png",
         label: "GB20 (Fēngchí)",
         prompt: "Tap GB20 — depression between SCM & trapezius, level with EOP.",
-        targets: [{x:42, y:43.4},{x:58.5,y:34}],
+        targets: [{x:41.5,y:34},{x:58.5,y:34}],
         tol: 3.0,
         hint: "Either side acceptable.",
         ref: {
@@ -249,6 +269,7 @@ filename: acu
     // ----- state -----
     let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
     let idx = 0, score = 0, showHint=false;
+    let fixedMarker = null; // {x, y} target coords to persist
 
     const wrap = $('#wrap'), img = $('#img'), overlay = $('#overlay');
     const scorePill = $('#scorePill'), qPill = $('#qPill'), bar = $('#bar');
@@ -298,7 +319,7 @@ filename: acu
 
     function restart(){
       order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
-      idx = 0; score = 0; updateMeta();
+      idx = 0; score = 0; fixedMarker = null; updateMeta();
       setBanner('Tap the requested point', '#93c5fd');
       loadQuestion();
     }
@@ -306,7 +327,7 @@ filename: acu
     function nextQuestion(){
       removeResearchDrawer();
       if (idx < order.length - 1){
-        idx += 1; updateMeta(); loadQuestion();
+        idx += 1; updateMeta(); fixedMarker=null; loadQuestion();
       } else {
         overlay.innerHTML = '';
         const done = document.createElement('div');
@@ -334,7 +355,6 @@ filename: acu
 
       setAspectFromImg();
       updateMeta();
-
       setBanner(q.prompt || ('Find ' + (q.label||'the point')), '#e2e8f0');
       hintPill.hidden = !q.hint && (!q.targets || !q.targets.length);
 
@@ -352,12 +372,15 @@ filename: acu
       const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
 
       const tolPx = (q.tol ?? 3) / 100 * Math.min(box.w, box.h);
-      const ok = (q.targets||[]).some(t=>{
+      const nearest = (q.targets||[]).reduce((best,t)=>{
         const dx = (xPct - t.x) * box.w/100;
         const dy = (yPct - t.y) * box.h/100;
-        return Math.hypot(dx,dy) <= tolPx;
-      });
+        const d = Math.hypot(dx,dy);
+        return (!best || d < best.d) ? {t, d} : best;
+      }, null);
+      const ok = nearest && nearest.d <= tolPx;
 
+      // transient click dot
       const dot = document.createElement('div');
       dot.className = 'acu-dot ' + (ok?'good':'bad');
       dot.style.left = px+'px'; dot.style.top = py+'px';
@@ -376,11 +399,15 @@ filename: acu
       if (ok){
         score += 1; scorePill.textContent = `Score: ${score}`;
         setBanner('✅ Correct — ' + (q.label || 'good pick'), '#34d399');
+
+        // persistent marker at the true target (nearest)
+        fixedMarker = nearest.t;
+        placeMarker();
+
         if (q.ref && q.ref.href){
-          // pause advancement; show right-side drawer
           showResearchDrawer(q.ref, ()=>{ setBanner(''); nextQuestion(); });
         } else {
-          setTimeout(()=>{ setBanner(''); nextQuestion(); }, 700);
+          setTimeout(()=>{ setBanner(''); nextQuestion(); }, 800);
         }
       } else {
         setBanner('❌ Not quite — try again or toggle a hint', '#f87171');
@@ -389,42 +416,71 @@ filename: acu
 
     function drawHint(){
       const q = ACU_QUESTIONS[order[idx]];
+      // remove ONLY hint elements; keep persistent marker if present
       overlay.querySelectorAll('.acu-ring, .hint-text').forEach(el=>el.remove());
-      if (!showHint || !q || !q.targets || !q.targets.length) return;
       const box = mediaBox();
-      const tolPx = (q.tol ?? 3) / 100 * Math.min(box.w, box.h);
-      q.targets.forEach(t=>{
-        const rx = box.x + (t.x/100)*box.w;
-        const ry = box.y + (t.y/100)*box.h;
-        const ring = document.createElement('div');
-        ring.className = 'acu-ring';
-        ring.style.left = rx+'px';
-        ring.style.top  = ry+'px';
-        ring.style.width  = ring.style.height = (tolPx*2.2)+'px';
-        overlay.appendChild(ring);
-      });
-      if (q.hint){
-        const p = document.createElement('p');
-        p.className = 'hint-text';
-        p.textContent = q.hint;
-        overlay.appendChild(p);
+      if (showHint && q && q.targets && q.targets.length){
+        const tolPx = (q.tol ?? 3) / 100 * Math.min(box.w, box.h);
+        q.targets.forEach(t=>{
+          const rx = box.x + (t.x/100)*box.w;
+          const ry = box.y + (t.y/100)*box.h;
+          const ring = document.createElement('div');
+          ring.className = 'acu-ring';
+          ring.style.left = rx+'px';
+          ring.style.top  = ry+'px';
+          ring.style.width  = ring.style.height = (tolPx*2.2)+'px';
+          overlay.appendChild(ring);
+        });
+        if (q.hint){
+          const p = document.createElement('p');
+          p.className = 'hint-text';
+          p.textContent = q.hint;
+          overlay.appendChild(p);
+        }
       }
+      // keep marker positioned correctly on resize/toggle
+      placeMarker();
     }
 
-    /* -------- Right-side research drawer logic -------- */
+    /* persistent marker helpers */
+    function placeMarker(){
+      const dot = document.getElementById('acuMarkerDot');
+      const ring = document.getElementById('acuMarkerRing');
+      if (!fixedMarker){
+        dot?.remove(); ring?.remove(); return;
+      }
+      const box = mediaBox();
+      const rx = box.x + (fixedMarker.x/100)*box.w;
+      const ry = box.y + (fixedMarker.y/100)*box.h;
+
+      let d = dot, r = ring;
+      if (!d){
+        d = document.createElement('div');
+        d.id = 'acuMarkerDot'; d.className = 'acu-lock-dot';
+        overlay.appendChild(d);
+      }
+      if (!r){
+        r = document.createElement('div');
+        r.id = 'acuMarkerRing'; r.className = 'acu-lock-ring';
+        overlay.appendChild(r);
+      }
+      d.style.left = rx+'px'; d.style.top = ry+'px';
+      r.style.left = rx+'px'; r.style.top = ry+'px';
+      r.style.width = r.style.height = '26px';
+    }
+
+    /* -------- Right-docked research panel logic -------- */
     function removeResearchDrawer(){
       document.getElementById('rd')?.remove();
     }
     function showResearchDrawer(ref, onContinue){
-      const stage = document.querySelector('.echo-stage');
+      const host = document.querySelector('.echo-card'); // dock to the card (outside image)
       removeResearchDrawer();
 
-      // shell
       const rd = document.createElement('div');
       rd.id = 'rd';
       rd.className = 'rd open';
 
-      // tab
       const tab = document.createElement('button');
       tab.className = 'rd-tab';
       tab.type = 'button';
@@ -432,7 +488,6 @@ filename: acu
       tab.textContent = 'Learn more';
       rd.appendChild(tab);
 
-      // card
       const card = document.createElement('div');
       card.className = 'rd-card';
       card.innerHTML = `
@@ -448,69 +503,13 @@ filename: acu
       `;
       rd.appendChild(card);
 
-      // mount
-      stage.style.position = stage.style.position || 'relative';
-      stage.appendChild(rd);
+      host.appendChild(rd);
 
-      // interactions
       const nextBtn = card.querySelector('button');
       tab.addEventListener('click', ()=> rd.classList.toggle('open'));
       nextBtn.addEventListener('click', ()=> { removeResearchDrawer(); onContinue?.(); });
-
-      // auto-focus next for quick flow
       nextBtn.focus({preventScroll:true});
     }
-
-    // ===== DEV coordinate picker (toggle with ?dev and D key) =====
-    (function attachDevPicker(){
-      const DEV = new URLSearchParams(location.search).has('dev');
-      if (!DEV) return;
-
-      const controls = document.querySelector('.echo-controls');
-      const devBtn = document.createElement('button');
-      devBtn.id = 'acu-devBtn';
-      devBtn.className = 'echo-link';
-      devBtn.textContent = 'Pick coords (D)';
-      controls.appendChild(devBtn);
-
-      let devMode = false;
-      function toggleDevMode(){
-        devMode = !devMode;
-        devBtn.textContent = devMode ? 'Picking… (D to exit)' : 'Pick coords (D)';
-        showToast(devMode ? 'Tap the image to copy % coords' : 'Picker off');
-
-        wrap.onclick = devMode ? devPick : onGuess;
-      }
-
-      devBtn.addEventListener('click', toggleDevMode);
-      window.addEventListener('keydown', e => { if (e.key.toLowerCase() === 'd') toggleDevMode(); });
-
-      function devPick(e){
-        const r = wrap.getBoundingClientRect();
-        const box = mediaBox();
-
-        const px = e.clientX - r.left;
-        const py = e.clientY - r.top;
-
-        const xPct = clamp(((px - box.x) / box.w) * 100, 0, 100);
-        const yPct = clamp(((py - box.y) / box.h) * 100, 0, 100);
-
-        const x = Math.round(xPct * 10) / 10;
-        const y = Math.round(yPct * 10) / 10;
-        const snippet = `{x:${x}, y:${y}}`;
-
-        const dot = document.createElement('div');
-        dot.style.cssText =
-          `position:absolute;left:${px}px;top:${py}px;width:12px;height:12px;border-radius:999px;`+
-          `background:#5eead4;box-shadow:0 0 12px rgba(94,234,212,.8);`+
-          `transform:translate(-50%,-50%);pointer-events:none`;
-        overlay.appendChild(dot);
-        setTimeout(()=>dot.remove(), 900);
-
-        navigator.clipboard?.writeText(snippet).catch(()=>{});
-        showToast('Copied: ' + snippet);
-      }
-    })();
 
     // init
     updateMeta();
