@@ -11,13 +11,18 @@ filename: acu
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Acupuncture — Point Identification Game</title>
 
-  <!-- Shared site-wide CSS -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../assets/css/echo.css">
 
   <style>
+    :root{ --drawer-w: clamp(320px, 28vw, 420px); }
+
     .echo-image-wrap{ --echo-min-h: 420px; }
 
+    /* Reserve space for the right drawer so it’s not over the image */
+    .echo-card.has-drawer .echo-stage{ margin-right: var(--drawer-w); }
+
+    /* --- click feedback dots --- */
     .acu-dot{
       position:absolute; width:14px; height:14px; border-radius:999px;
       transform:translate(-50%,-50%); z-index:6; pointer-events:none;
@@ -26,6 +31,21 @@ filename: acu
     .acu-dot.bad{ background:#ef4444; }
     .acu-dot.good{ background:#34d399; }
 
+    /* persistent marker (stays after correct tap) */
+    .acu-lock-ring{
+      position:absolute; border:2px solid rgba(94,234,212,.9);
+      border-radius:999px; transform:translate(-50%,-50%);
+      pointer-events:none; z-index:7;
+      box-shadow:0 0 22px rgba(94,234,212,.35);
+      width:26px; height:26px;
+    }
+    .acu-lock-dot{
+      position:absolute; width:12px; height:12px; border-radius:999px;
+      transform:translate(-50%,-50%); z-index:8; pointer-events:none;
+      background:#34d399; box-shadow:0 0 12px rgba(34,197,94,.75);
+    }
+
+    /* hint rings */
     .acu-ring{
       position:absolute; border:2px dashed rgba(94,234,212,.75);
       border-radius:999px; transform:translate(-50%,-50%);
@@ -37,19 +57,6 @@ filename: acu
       0%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
       70%{ transform:translate(-50%,-50%) scale(1.08); opacity:.6; }
       100%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
-    }
-
-    /* persistent marker (stays after correct tap) */
-    .acu-lock-ring{
-      position:absolute; border:2px solid rgba(94,234,212,.9);
-      border-radius:999px; transform:translate(-50%,-50%);
-      pointer-events:none; z-index:7;
-      box-shadow:0 0 22px rgba(94,234,212,.35);
-    }
-    .acu-lock-dot{
-      position:absolute; width:12px; height:12px; border-radius:999px;
-      transform:translate(-50%,-50%); z-index:8; pointer-events:none;
-      background:#34d399; box-shadow:0 0 12px rgba(34,197,94,.75);
     }
 
     .hint-pill{
@@ -65,13 +72,13 @@ filename: acu
     }
     .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
 
-    /* -------- Right-docked research panel (outside image) -------- */
-    .echo-card{ position:relative; } /* host for docking */
+    /* --- Right-docked research drawer --- */
+    .echo-card{ position:relative; }
     .rd{
       position:absolute; right:12px; top:50%; transform:translateY(-50%);
       z-index:9; display:flex; align-items:center; gap:10px;
-      pointer-events:none; /* container: ignore; children re-enable */
-      max-width:32vw;
+      width:var(--drawer-w);
+      pointer-events:none;
     }
     .rd-tab{
       pointer-events:auto;
@@ -82,16 +89,14 @@ filename: acu
       cursor:pointer; writing-mode:vertical-rl; text-orientation:mixed;
       letter-spacing:.4px; user-select:none;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
-      transition:transform .12s ease, opacity .12s ease;
+      transition:transform .12s ease;
     }
     .rd-tab:hover{ transform:translateX(-2px); }
-
     .rd-card{
       pointer-events:auto;
-      width:clamp(320px, 28vw, 420px);
+      width:calc(var(--drawer-w) - 44px);
       max-height:min(70vh, 560px);
-      overflow:auto;
-      border-radius:14px;
+      overflow:auto; border-radius:14px;
       background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
       border:1px solid rgba(255,255,255,.12);
       box-shadow:0 20px 50px rgba(0,0,0,.45);
@@ -121,15 +126,14 @@ filename: acu
     .btn-link{ text-decoration:none; display:inline-flex; align-items:center; gap:.5rem; }
     .btn .ext{ font-size:1.05em; opacity:.9; }
 
-    /* On narrow screens, let it overlay to avoid layout crunch */
     @media (max-width: 1100px){
-      .rd{ right:8px; top:auto; bottom:12px; transform:none; max-width:92vw; }
-      .rd-card{ width:min(92vw, 520px); }
+      .echo-card.has-drawer .echo-stage{ margin-right: 0; }
+      .rd{ right:8px; top:auto; bottom:12px; transform:none; width:min(92vw,520px); }
+      .rd-card{ width:calc(min(92vw,520px) - 44px); }
     }
   </style>
 </head>
 <body class="echo">
-  <!-- ===== Header ===== -->
   <header class="container">
     <h1 class="sr-only">In-Ax — This Picture — For Visual Learners</h1>
     <div class="nav-box">
@@ -153,7 +157,6 @@ filename: acu
     </div>
   </header>
 
-  <!-- ===== Game ===== -->
   <div class="echo-root">
     <div class="echo-app">
       <div class="echo-header">
@@ -205,25 +208,26 @@ filename: acu
   </footer>
 
   <script>
-    // ----- active tab + year -----
+    // active tab + year
     (function(){
       const path = location.pathname.replace(/\/+$/,'') || '/';
       document.querySelectorAll('.tab').forEach(a=>{
-        const match = a.getAttribute('data-match');
+        const m=a.getAttribute('data-match');
         const isRoot = path==='/' || /\/index\.html$/.test(path);
-        const on = match==='/' ? isRoot : path.includes(match);
+        const on = m==='/'?isRoot:path.includes(m);
         if(on){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
       });
       document.getElementById('y').textContent = new Date().getFullYear();
     })();
 
-    // ----- tiny helpers -----
-    const $ = (s,el=document)=>el.querySelector(s);
+    // helpers
+    const $=(s,el=document)=>el.querySelector(s);
     const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-    const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j]]; } return b};
+    const shuffle=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}; // fixed
+
     const escapeHTML = (str)=>String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
 
-    // ----- data -----
+    // data
     const ACU_QUESTIONS = [
       {
         image: "../acu/images/p6.png",
@@ -232,11 +236,9 @@ filename: acu
         targets: [{x:58.5, y:61.5}],
         tol: 3.2,
         hint: "On the dorsum between 1st–2nd metacarpals; closer to 2nd metacarpal radial side.",
-        ref: {
-          title: "Analgesic effects of LI4 acupressure",
-          href: "https://pubmed.ncbi.nlm.nih.gov/?term=LI4+acupressure+analgesia",
-          blurb: "Evidence base exploring LI4 stimulation for pain modulation and peri-procedural analgesia."
-        }
+        ref: { title:"Analgesic effects of LI4 acupressure",
+               href:"https://pubmed.ncbi.nlm.nih.gov/?term=LI4+acupressure+analgesia",
+               blurb:"Evidence base exploring LI4 stimulation for pain modulation and peri-procedural analgesia." }
       },
       {
         image: "../acu/images/p6.png",
@@ -245,11 +247,9 @@ filename: acu
         targets: [{x:47.2, y:66.8}, {x:52.8, y:66.8}],
         tol: 3.0,
         hint: "Find tibial tuberosity, drop ~3 cun, slide lateral off the crest.",
-        ref: {
-          title: "ST36 for analgesia and autonomic effects",
-          href: "https://pubmed.ncbi.nlm.nih.gov/?term=ST36+acupressure+randomized",
-          blurb: "Trials evaluating ST36’s effects on pain, HRV, and peri-operative outcomes."
-        }
+        ref: { title:"ST36 for analgesia and autonomic effects",
+               href:"https://pubmed.ncbi.nlm.nih.gov/?term=ST36+acupressure+randomized",
+               blurb:"Trials evaluating ST36’s effects on pain, HRV, and peri-operative outcomes." }
       },
       {
         image: "../acu/images/p6.png",
@@ -258,27 +258,24 @@ filename: acu
         targets: [{x:41.5,y:34},{x:58.5,y:34}],
         tol: 3.0,
         hint: "Either side acceptable.",
-        ref: {
-          title: "GB20 stimulation for headache and neck tension",
-          href: "https://pubmed.ncbi.nlm.nih.gov/?term=GB20+acupressure+headache",
-          blurb: "Clinical studies on GB20 in tension-type headache and cervical myofascial pain."
-        }
+        ref: { title:"GB20 stimulation for headache and neck tension",
+               href:"https://pubmed.ncbi.nlm.nih.gov/?term=GB20+acupressure+headache",
+               blurb:"Clinical studies on GB20 in tension-type headache and cervical myofascial pain." }
       }
     ];
 
-    // ----- state -----
+    // state
     let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
-    let idx = 0, score = 0, showHint=false;
-    let fixedMarker = null; // {x, y} target coords to persist
+    let idx=0, score=0, showHint=false, fixedMarker=null;
 
-    const wrap = $('#wrap'), img = $('#img'), overlay = $('#overlay');
-    const scorePill = $('#scorePill'), qPill = $('#qPill'), bar = $('#bar');
-    const topBanner = $('#topBanner'), toast = $('#toast'), flash = $('#flash'), signal = $('#signal');
-    const hintPill = $('#hintPill'), hintBtn = $('#hintBtn');
+    const wrap=$('#wrap'), img=$('#img'), overlay=$('#overlay');
+    const scorePill=$('#scorePill'), qPill=$('#qPill'), bar=$('#bar');
+    const topBanner=$('#topBanner'), toast=$('#toast'), flash=$('#flash'), signal=$('#signal');
+    const hintPill=$('#hintPill'), hintBtn=$('#hintBtn');
 
     $('#skipBtn').addEventListener('click', nextQuestion);
     $('#restartBtn').addEventListener('click', restart);
-    hintBtn.addEventListener('click', ()=>{ showHint=!showHint; hintBtn.textContent = showHint?'Hide':'Show'; drawHint(); });
+    hintBtn.addEventListener('click', ()=>{ showHint=!showHint; hintBtn.textContent=showHint?'Hide':'Show'; drawHint(); });
 
     function showToast(msg){
       toast.textContent = msg;
@@ -293,7 +290,7 @@ filename: acu
     }
     function updateMeta(){
       scorePill.textContent = `Score: ${score}`;
-      qPill.textContent     = `${idx+1} / ${order.length}`;
+      qPill.textContent = `${idx+1} / ${order.length}`;
       const pct = (idx / order.length) * 100;
       bar.style.inset = `0 ${100-pct}% 0 0`;
     }
@@ -319,20 +316,20 @@ filename: acu
 
     function restart(){
       order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
-      idx = 0; score = 0; fixedMarker = null; updateMeta();
+      idx=0; score=0; fixedMarker=null; updateMeta();
       setBanner('Tap the requested point', '#93c5fd');
       loadQuestion();
     }
 
     function nextQuestion(){
       removeResearchDrawer();
-      if (idx < order.length - 1){
-        idx += 1; updateMeta(); fixedMarker=null; loadQuestion();
+      if (idx < order.length-1){
+        idx++; updateMeta(); fixedMarker=null; loadQuestion();
       } else {
-        overlay.innerHTML = '';
-        const done = document.createElement('div');
+        overlay.innerHTML='';
+        const done=document.createElement('div');
         done.style.padding='20px';
-        done.innerHTML = `<h2 style="margin:.2rem 0 .6rem;color:#e6edf9">Nice work! 🎉</h2>
+        done.innerHTML=`<h2 style="margin:.2rem 0 .6rem;color:#e6edf9">Nice work! 🎉</h2>
           <p style="color:#cbd5e1">You scored <strong>${score}</strong> / ${order.length}.</p>
           <button class="echo-btn" type="button">Play again</button>`;
         done.querySelector('button').addEventListener('click', restart);
@@ -341,11 +338,9 @@ filename: acu
       }
     }
 
-    // ---- load one question
     function loadQuestion(){
-      overlay.innerHTML = '';
-      removeResearchDrawer();
-      showHint = false; hintBtn.textContent='Show';
+      overlay.innerHTML=''; removeResearchDrawer();
+      showHint=false; hintBtn.textContent='Show';
       const q = ACU_QUESTIONS[order[idx]];
 
       img.onload = ()=>{ setAspectFromImg(); drawHint(); };
@@ -353,16 +348,14 @@ filename: acu
       img.src = q.image;
       img.alt = q.label || 'Acupuncture point image';
 
-      setAspectFromImg();
-      updateMeta();
-      setBanner(q.prompt || ('Find ' + (q.label||'the point')), '#e2e8f0');
+      setAspectFromImg(); updateMeta();
+      setBanner(q.prompt || ('Find '+(q.label||'the point')), '#e2e8f0');
       hintPill.hidden = !q.hint && (!q.targets || !q.targets.length);
 
       wrap.onclick = onGuess;
       window.onresize = drawHint;
     }
 
-    // ---- normal play
     function onGuess(e){
       const q = ACU_QUESTIONS[order[idx]];
       const r = wrap.getBoundingClientRect(), box = mediaBox();
@@ -373,42 +366,34 @@ filename: acu
 
       const tolPx = (q.tol ?? 3) / 100 * Math.min(box.w, box.h);
       const nearest = (q.targets||[]).reduce((best,t)=>{
-        const dx = (xPct - t.x) * box.w/100;
-        const dy = (yPct - t.y) * box.h/100;
-        const d = Math.hypot(dx,dy);
-        return (!best || d < best.d) ? {t, d} : best;
+        const dx=(xPct-t.x)*box.w/100, dy=(yPct-t.y)*box.h/100;
+        const d=Math.hypot(dx,dy); return (!best || d<best.d)?{t,d}:best;
       }, null);
       const ok = nearest && nearest.d <= tolPx;
 
-      // transient click dot
-      const dot = document.createElement('div');
-      dot.className = 'acu-dot ' + (ok?'good':'bad');
-      dot.style.left = px+'px'; dot.style.top = py+'px';
-      overlay.appendChild(dot);
-      setTimeout(()=>dot.remove(), 900);
+      const dot=document.createElement('div');
+      dot.className='acu-dot '+(ok?'good':'bad');
+      dot.style.left=px+'px'; dot.style.top=py+'px';
+      overlay.appendChild(dot); setTimeout(()=>dot.remove(),900);
 
-      // feedback
-      flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)' : 'rgba(248,113,113,.28)');
+      flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)':'rgba(248,113,113,.28)');
       flash.classList.add('show');
-      signal.textContent = ok ? '✔' : '✖';
+      signal.textContent = ok ? '✔':'✖';
       signal.classList.toggle('ok', ok);
       signal.classList.toggle('no', !ok);
       signal.classList.add('show');
-      setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); }, 600);
+      setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); },600);
 
       if (ok){
-        score += 1; scorePill.textContent = `Score: ${score}`;
-        setBanner('✅ Correct — ' + (q.label || 'good pick'), '#34d399');
+        score++; scorePill.textContent = `Score: ${score}`;
+        setBanner('✅ Correct — '+(q.label||'good pick'), '#34d399');
 
-        // persistent marker at the true target (nearest)
+        // lock a persistent marker at the *true* nearest target
         fixedMarker = nearest.t;
         placeMarker();
 
-        if (q.ref && q.ref.href){
-          showResearchDrawer(q.ref, ()=>{ setBanner(''); nextQuestion(); });
-        } else {
-          setTimeout(()=>{ setBanner(''); nextQuestion(); }, 800);
-        }
+        if (q.ref && q.ref.href){ showResearchDrawer(q.ref, ()=>{ setBanner(''); nextQuestion(); }); }
+        else { setTimeout(()=>{ setBanner(''); nextQuestion(); }, 800); }
       } else {
         setBanner('❌ Not quite — try again or toggle a hint', '#f87171');
       }
@@ -416,7 +401,6 @@ filename: acu
 
     function drawHint(){
       const q = ACU_QUESTIONS[order[idx]];
-      // remove ONLY hint elements; keep persistent marker if present
       overlay.querySelectorAll('.acu-ring, .hint-text').forEach(el=>el.remove());
       const box = mediaBox();
       if (showHint && q && q.targets && q.targets.length){
@@ -428,93 +412,71 @@ filename: acu
           ring.className = 'acu-ring';
           ring.style.left = rx+'px';
           ring.style.top  = ry+'px';
-          ring.style.width  = ring.style.height = (tolPx*2.2)+'px';
+          ring.style.width = ring.style.height = (tolPx*2.2)+'px';
           overlay.appendChild(ring);
         });
         if (q.hint){
-          const p = document.createElement('p');
-          p.className = 'hint-text';
-          p.textContent = q.hint;
+          const p=document.createElement('p');
+          p.className='hint-text';
+          p.textContent=q.hint;
           overlay.appendChild(p);
         }
       }
-      // keep marker positioned correctly on resize/toggle
       placeMarker();
     }
 
-    /* persistent marker helpers */
+    // persistent marker positioning
     function placeMarker(){
-      const dot = document.getElementById('acuMarkerDot');
-      const ring = document.getElementById('acuMarkerRing');
-      if (!fixedMarker){
-        dot?.remove(); ring?.remove(); return;
-      }
+      const dotEl=document.getElementById('acuMarkerDot');
+      const ringEl=document.getElementById('acuMarkerRing');
+      if(!fixedMarker){ dotEl?.remove(); ringEl?.remove(); return; }
       const box = mediaBox();
       const rx = box.x + (fixedMarker.x/100)*box.w;
       const ry = box.y + (fixedMarker.y/100)*box.h;
 
-      let d = dot, r = ring;
-      if (!d){
-        d = document.createElement('div');
-        d.id = 'acuMarkerDot'; d.className = 'acu-lock-dot';
-        overlay.appendChild(d);
-      }
-      if (!r){
-        r = document.createElement('div');
-        r.id = 'acuMarkerRing'; r.className = 'acu-lock-ring';
-        overlay.appendChild(r);
-      }
-      d.style.left = rx+'px'; d.style.top = ry+'px';
-      r.style.left = rx+'px'; r.style.top = ry+'px';
-      r.style.width = r.style.height = '26px';
+      let d=dotEl, r=ringEl;
+      if(!d){ d=document.createElement('div'); d.id='acuMarkerDot'; d.className='acu-lock-dot'; overlay.appendChild(d); }
+      if(!r){ r=document.createElement('div'); r.id='acuMarkerRing'; r.className='acu-lock-ring'; overlay.appendChild(r); }
+      d.style.left=rx+'px'; d.style.top=ry+'px';
+      r.style.left=rx+'px'; r.style.top=ry+'px';
     }
 
-    /* -------- Right-docked research panel logic -------- */
+    // right drawer
     function removeResearchDrawer(){
-      document.getElementById('rd')?.remove();
+      document.querySelector('.rd')?.remove();
+      document.querySelector('.echo-card')?.classList.remove('has-drawer');
     }
     function showResearchDrawer(ref, onContinue){
-      const host = document.querySelector('.echo-card'); // dock to the card (outside image)
-      removeResearchDrawer();
+      const host=document.querySelector('.echo-card');
+      host.classList.add('has-drawer');
 
-      const rd = document.createElement('div');
-      rd.id = 'rd';
-      rd.className = 'rd open';
+      const rd=document.createElement('div');
+      rd.className='rd open'; rd.id='rd';
 
-      const tab = document.createElement('button');
-      tab.className = 'rd-tab';
-      tab.type = 'button';
-      tab.title = 'Show/Hide details';
-      tab.textContent = 'Learn more';
-      rd.appendChild(tab);
+      const tab=document.createElement('button');
+      tab.className='rd-tab'; tab.type='button'; tab.title='Show/Hide details';
+      tab.textContent='Learn more';
 
-      const card = document.createElement('div');
-      card.className = 'rd-card';
-      card.innerHTML = `
+      const card=document.createElement('div');
+      card.className='rd-card';
+      card.innerHTML=`
         <div class="rd-head">
           <span class="rd-pill">Research</span>
-          <span class="rd-title">${escapeHTML(ref.title || 'Related article')}</span>
+          <span class="rd-title">${escapeHTML(ref.title||'Related article')}</span>
         </div>
-        <div class="rd-body">${escapeHTML(ref.blurb || 'Explore clinical research for this point.')}</div>
+        <div class="rd-body">${escapeHTML(ref.blurb||'Explore clinical research for this point.')}</div>
         <div class="rd-actions">
           <a class="btn btn-link" href="${ref.href}" target="_blank" rel="noopener">Open article <span class="ext">↗</span></a>
           <button class="btn btn-primary" type="button">Next question</button>
-        </div>
-      `;
-      rd.appendChild(card);
+        </div>`;
 
-      host.appendChild(rd);
+      rd.appendChild(tab); rd.appendChild(card); host.appendChild(rd);
 
-      const nextBtn = card.querySelector('button');
       tab.addEventListener('click', ()=> rd.classList.toggle('open'));
-      nextBtn.addEventListener('click', ()=> { removeResearchDrawer(); onContinue?.(); });
-      nextBtn.focus({preventScroll:true});
+      card.querySelector('button').addEventListener('click', ()=>{ removeResearchDrawer(); onContinue?.(); });
     }
 
-    // init
-    updateMeta();
-    setBanner('Tap the requested point', '#93c5fd');
-    (function(){ img.onload = ()=>{ setAspectFromImg(); drawHint(); }; img.src = ACU_QUESTIONS[0].image; })(); // preload aspect
+    // go!
     restart();
   </script>
 </body>
