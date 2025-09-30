@@ -17,14 +17,12 @@ filename: cvra
 <style>
   :root{ --side-w: 320px; }
 
-  /* Keep the stage roomy; nothing here shrinks it */
   .echo-image-wrap{ --echo-min-h: 520px; position:relative; }
   @media (max-width: 900px){ .echo-image-wrap{ --echo-min-h: 440px; } }
 
-  /* Main card that holds vignette, question, answers */
+  /* Main card */
   .cv-card{
     position:absolute; inset:16px 16px 16px 16px;
-    /* Reserve room for the sidebar so they don't overlap */
     margin-right: calc(var(--side-w) + 16px);
     z-index:3;
     border:1px solid rgba(255,255,255,.12);
@@ -32,23 +30,31 @@ filename: cvra
     display:flex; flex-direction:column; padding:14px;
     backdrop-filter:saturate(1.1) blur(2px);
   }
-  /* When the layout stacks (tablet/phone), give the card full width */
   @media (max-width: 1100px){
     .cv-card{ margin-right: 0; inset:12px; }
   }
 
   .cv-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+
+  /* New: clear prompt box so the vignette and question are obvious */
+  .cv-prompt{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.05);
+    border-radius:12px;
+    padding:10px 12px;
+    margin:.3rem 0 .6rem;
+  }
+  .cv-vignette{ color:#cbd5e1; opacity:.95; margin:0 0 .25rem; line-height:1.35; }
+  .cv-question{ color:#e6edf9; font-weight:900; font-size:1.08rem; letter-spacing:.2px; }
+
   .pill-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .lives-pill,.timer-pill,.best-pill{
+  .lives-pill,.timer-pill{
     padding:.35rem .6rem; border-radius:999px; background:rgba(15,23,42,.85);
     border:1px solid rgba(255,255,255,.12); color:#e6edf9; font-weight:900;
   }
   .timer-pill.warn{ color:#f59e0b; } .timer-pill.danger{ color:#ef4444; }
 
-  .cv-vignette{ color:#cbd5e1; opacity:.95; margin:.25rem 0 .4rem; line-height:1.35; }
-  .cv-question{ color:#e6edf9; font-weight:900; font-size:1.08rem; letter-spacing:.2px; margin:.2rem 0 .2rem; }
-
-  .cv-sub{ color:#a7b4d6; font-weight:800; margin:.45rem 0 .2rem; }
+  .cv-sub{ color:#a7b4d6; font-weight:800; margin:.4rem 0 .2rem; }
   .cv-conf{ display:flex; align-items:center; gap:10px; }
   .cv-conf input{ flex:1; }
   .cv-conf .cv-chip{ min-width:64px; text-align:center; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); padding:.25rem .5rem; border-radius:10px; font-weight:800; color:#e6edf9; }
@@ -64,12 +70,11 @@ filename: cvra
   .cv-btn:hover{ transform:translateY(-1px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.10); }
   .cv-btn.ok{ outline:2px solid #34d399; } .cv-btn.no{ outline:2px solid #ef4444; }
 
-  /* Right overlay sidebar (does NOT shrink stage) */
+  /* Right overlay sidebar */
   .cv-sidebar{
     position:absolute; right:16px; top:16px; width:var(--side-w); z-index:4;
     border:1px solid rgba(255,255,255,.12); border-radius:16px;
     background:rgba(2,6,23,.60); padding:12px; display:flex; flex-direction:column; gap:10px;
-    pointer-events:auto;
   }
   .cv-side-head{ font-weight:900; color:#e6edf9; letter-spacing:.2px; }
   .cv-gauge{ position:relative; height:120px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.04); }
@@ -81,14 +86,12 @@ filename: cvra
   .cv-links{ display:flex; gap:8px; flex-wrap:wrap; }
   .cv-link{ border:1px solid rgba(94,234,212,.35); color:#a7f3d0; background:rgba(94,234,212,.08); border-radius:10px; padding:.35rem .6rem; font-weight:900; text-decoration:none; }
 
-  /* Stack sidebar on small screens (then the card no longer reserves space) */
   @media (max-width: 1100px){
     .cv-sidebar{ position:static; width:auto; margin-top:10px; }
   }
 </style>
 </head>
 <body class="echo">
-  <!-- Header -->
   <header class="container">
     <div class="nav-box">
       <div class="nav-row">
@@ -108,7 +111,6 @@ filename: cvra
     </div>
   </header>
 
-  <!-- Game -->
   <div class="echo-root">
     <div class="echo-app">
       <div class="echo-header">
@@ -140,8 +142,11 @@ filename: cvra
                 </div>
               </div>
 
-              <div id="vignette" class="cv-vignette"></div>
-              <div id="question" class="cv-question"></div>
+              <!-- NEW prompt box -->
+              <div class="cv-prompt">
+                <div id="vignette" class="cv-vignette"></div>
+                <div id="question" class="cv-question"></div>
+              </div>
 
               <div class="cv-sub">Confidence</div>
               <div class="cv-conf">
@@ -173,7 +178,6 @@ filename: cvra
               </div>
             </aside>
 
-            <!-- visual feedback -->
             <div id="flash" class="echo-flash" aria-hidden="true"></div>
             <div id="signal" class="echo-signal" aria-hidden="true"></div>
           </div>
@@ -195,7 +199,6 @@ filename: cvra
   </footer>
 
 <script>
-/* ---------- boot / tabs ---------- */
 (function(){
   const path = location.pathname.replace(/\/+$/,'') || '/';
   document.querySelectorAll('.tab').forEach(a=>{
@@ -207,7 +210,7 @@ filename: cvra
   document.getElementById('y').textContent = new Date().getFullYear();
 })();
 
-/* ---------- helpers ---------- */
+/* Helpers */
 const $= (s,el=document)=>el.querySelector(s);
 const toast = $('#toast');
 function showToast(msg){ toast.textContent = msg; toast.classList.add('echo-show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('echo-show'),1500); }
@@ -220,13 +223,9 @@ function flashFeedback(ok){
 }
 const RNG = (seed=Date.now()%2147483647)=>()=> (seed=seed*48271%2147483647)/2147483647;
 
-/* ---------- state ---------- */
+/* State */
 let rng, state, timer=null, tLeft=0, round=0;
-
-function seedFromURL(){
-  const p = new URLSearchParams(location.search);
-  const s = p.get('seed'); return s? +s : (Math.random()*1e9|0);
-}
+function seedFromURL(){ const p = new URLSearchParams(location.search); const s = p.get('seed'); return s? +s : (Math.random()*1e9|0); }
 
 function buildCase(r){
   const urgent         = r() < 0.25;
@@ -236,7 +235,6 @@ function buildCase(r){
   const metsGood       = r() < 0.55;
   const testingAffects = r() < 0.55;
   const stressLow      = r() < 0.60;
-  const sType = ['low-risk','intermediate','high-risk'][ (maceHigh? (r()<0.5?1:2) : 0) ];
   const surg = ['superficial','orthopedic','intra-abdominal','vascular'][ (maceHigh? (r()<0.5?2:3) : (r()<0.5?0:1)) ];
   const text = [
     urgent? 'Urgent surgery (≤24 h). ':'Elective surgery. ',
@@ -246,7 +244,7 @@ function buildCase(r){
     maceHigh? 'Estimated MACE ≥1%. ':'Estimated MACE <1%. ',
     `Functional capacity ${metsGood? '≥4':'<4'} METs.`
   ].join('');
-  return { urgent, activeIssues, priorStent, maceHigh, metsGood, testingAffects, stressLow, surgType:sType, vignette:text };
+  return { urgent, activeIssues, priorStent, maceHigh, metsGood, testingAffects, stressLow, vignette:text };
 }
 
 function startGame(){
@@ -265,7 +263,6 @@ function startGame(){
   render();
 }
 
-/* ---------- UI meta ---------- */
 function setBanner(text,color){ const b=$('#topBanner'); b.textContent=text||''; b.hidden=!text; b.style.color=color||''; }
 function setLives(n){ $('#lives').innerHTML = '❤️'.repeat(n) + '🖤'.repeat(3-n); }
 function setRisk(n){ state.risk = Math.max(0,Math.min(100,n)); $('#cvNeedle').style.width = state.risk+'%'; }
@@ -275,7 +272,6 @@ function updateMeta(){
   $('#bestPill').textContent  = `Best 🔥 ${state.best}`;
 }
 
-/* ---------- timer ---------- */
 function startTimer(sec){
   clearInterval(timer);
   tLeft = sec;
@@ -294,7 +290,6 @@ function startTimer(sec){
 }
 function stopTimer(){ clearInterval(timer); $('#timer').hidden=true; }
 
-/* ---------- lifelines ---------- */
 function refreshLifelines(){
   $('#llHelp').disabled  = state.ll?.help===0;
   $('#llGuide').disabled = state.ll?.guide===0;
@@ -310,131 +305,32 @@ function attachLifelines(){
   $('#llGuide').onclick = ()=>{
     if(!state.ll.guide) return;
     state.ll.guide=0; refreshLifelines();
-    setBanner('Guideline: test only if it will change management; limit attempts; optimize risk factors.', '#93c5fd');
+    setBanner('Guideline: test only if it will change management; optimize risk factors; limit attempts.', '#93c5fd');
   };
 }
 
-/* ---------- keyboard shortcuts ---------- */
 document.addEventListener('keydown', (e)=>{
   const k=+e.key; const opts = Array.from($('#options').children);
   if(k>=1 && k<=opts.length) opts[k-1].click();
 });
 
-/* ---------- step builder ---------- */
 function render(){
   const C = state.case;
   setLives(state.lives); updateMeta(); refreshLifelines();
 
-  // Show vignette + make sure the actual question text is in the card
+  // Fill prompt box + banner every time
+  const q = buildStep();
   $('#vignette').textContent = C.vignette;
+  $('#question').textContent = q.title || '';
+  setBanner(q.title || '', '#e2e8f0');
 
   const opts = $('#options'); opts.innerHTML='';
   const conf = $('#conf'), confVal=$('#confVal');
   conf.oninput = ()=> confVal.textContent = conf.value+'%';
   confVal.textContent = conf.value+'%';
 
-  // timer per step
-  startTimer(C.urgent? 10 : 25);
-
-  let q = { title:'', options:[] };
-
-  switch(state.step){
-    case 'urgent':
-      q.title = C.urgent? 'Surgery is urgent (≤24 h).' : 'Surgery is NOT urgent.';
-      q.options = C.urgent ? [
-        A('Proceed to surgery now; defer testing not changing management','active', true,{risk:-6, reveal:'Urgent pathway'}),
-        A('Delay for stress test','active', false,{risk:+10}),
-        A('Admit for prolonged optimization first','active', false,{risk:+8})
-      ] : [
-        A('Continue risk assessment','active', true,{risk:-2}),
-        A('Proceed directly to surgery','finish', false,{risk:+10}),
-        A('Order cath lab now','active', false,{risk:+12})
-      ];
-      break;
-
-    case 'active':
-      q.title = 'Any active cardiac conditions (ACS, decomp HF, severe valve, significant arrhythmia)?';
-      q.options = C.activeIssues ? [
-        A('Delay if possible + multidisciplinary consultation','finish', true,{risk:-8, reveal:'Active issue present'}),
-        A('Proceed to surgery','prior', false,{risk:+12}),
-        A('Stress test first','prior', false,{risk:+6})
-      ] : [
-        A('No active issues — continue','prior', true,{risk:-4, reveal:'No active cardiac issue'}),
-        A('Proceed to surgery now','finish', false,{risk:+8}),
-        A('Start noninvasive stress test anyway','prior', false,{risk:+4})
-      ];
-      break;
-
-    case 'prior':
-      q.title = 'Prior coronary stent?';
-      q.options = C.priorStent ? [
-        A('Consider specialty consult; continue pathway','mace', true,{risk:-2, reveal:'Prior stent'}),
-        A('Cancel surgery until stent removed','mace', false,{risk:+6}),
-        A('Ignore and proceed','mace', false,{risk:+6})
-      ] : [
-        A('No prior stent — continue','mace', true,{risk:-1, reveal:'No stent history'}),
-        A('Order cath lab','mace', false,{risk:+6})
-      ];
-      break;
-
-    case 'mace':
-      q.title = 'Estimated risk of peri-op major adverse cardiac event (MACE) ≥1%?';
-      q.options = C.maceHigh ? [
-        A('Yes — evaluate functional capacity next','mets', true,{risk:+2, reveal:'MACE ≥1%'}),
-        A('Proceed to surgery','finish', false,{risk:+10}),
-        A('Skip to stress test','stress', false,{risk:+6})
-      ] : [
-        A('No — proceed to surgery','finish', true,{risk:-6, reveal:'MACE <1%'}),
-        A('Do stress test anyway','mets', false,{risk:+5}),
-        A('Admit for invasive testing','mets', false,{risk:+8})
-      ];
-      break;
-
-    case 'mets':
-      q.title = 'Functional capacity (METs) ≥4?';
-      q.options = C.metsGood ? [
-        A('Yes — proceed to surgery','finish', true,{risk:-6, reveal:'≥4 METs'}),
-        A('Cardiology consult first','finish', false,{risk:+4}),
-        A('Stress test anyway','stress', false,{risk:+5})
-      ] : [
-        A('No — would testing change management?','change', true,{risk:+2, reveal:'<4 METs'}),
-        A('Proceed to surgery anyway','finish', false,{risk:+10})
-      ];
-      break;
-
-    case 'change':
-      q.title = 'Would further testing affect decision-making or peri-op care?';
-      q.options = C.testingAffects ? [
-        A('Yes — conduct noninvasive stress testing','stress', true,{risk:+1, reveal:'Testing will change mgmt'}),
-        A('No — proceed to surgery','finish', false,{risk:+7})
-      ] : [
-        A('No — proceed to surgery','finish', true,{risk:-3, reveal:'Testing wouldn’t change care'}),
-        A('Yes — stress test','stress', false,{risk:+5})
-      ];
-      break;
-
-    case 'stress':
-      q.title = 'Noninvasive stress testing result?';
-      q.options = C.stressLow ? [
-        A('Low-risk findings — proceed to surgery','finish', true,{risk:-6, reveal:'Stress: low-risk'}),
-        A('Cancel surgery','finish', false,{risk:+4}),
-        A('Admit for invasive angiography','finish', false,{risk:+6})
-      ] : [
-        A('Intermediate/high-risk — obtain cardiology consultation','finish', true,{risk:+2, reveal:'Stress: ↑risk'}),
-        A('Proceed to surgery anyway','finish', false,{risk:+12})
-      ];
-      break;
-
-    case 'finish':
-      stopTimer();
-      return showEnd();
-  }
-
-  // Put the actual question into the card (center), not only the banner
-  $('#question').textContent = q.title;
-
+  startTimer(C.urgent? 12 : 25);
   $('#stepPill').textContent = `Step ${stepIndex()}`;
-  setBanner('', ''); // keep the top slim banner free for hints only
   attachLifelines();
 
   q.options.forEach((o,i)=>{
@@ -443,13 +339,113 @@ function render(){
     b.innerHTML = `<strong>${i+1}. ${o.text}</strong>${o.small?`<div style="opacity:.8;font-weight:700;margin-top:4px">${o.small}</div>`:''}`;
     b.dataset.next = o.next; b.dataset.ok = o.ok?'1':'0';
     b.addEventListener('click', ()=> select(o, b));
-    $('#options').appendChild(b);
+    opts.appendChild(b);
   });
 }
 
 function A(text,next,ok,meta={},small=''){ return { text, next, ok, meta, small }; }
 function stepIndex(){
   return ({urgent:1,active:2,prior:3,mace:4,mets:5,change:6,stress:7,finish:8})[state.step] || 1;
+}
+
+function buildStep(){
+  const C = state.case;
+  switch(state.step){
+    case 'urgent':
+      return {
+        title: C.urgent? 'Surgery is urgent (≤24 h). What is the best approach?' : 'Surgery is NOT urgent. What is the next best step?',
+        options: C.urgent ? [
+          A('Proceed to surgery; defer testing that won’t change management','active', true,{risk:-6, reveal:'Urgent pathway'}),
+          A('Delay for stress test','active', false,{risk:+10}),
+          A('Admit for prolonged optimization first','active', false,{risk:+8})
+        ] : [
+          A('Continue risk assessment','active', true,{risk:-2}),
+          A('Proceed directly to surgery','finish', false,{risk:+10}),
+          A('Order coronary angiography now','active', false,{risk:+12})
+        ]
+      };
+
+    case 'active':
+      return {
+        title: 'Any active cardiac conditions (ACS, decompensated HF, severe valve, significant arrhythmia)?',
+        options: C.activeIssues ? [
+          A('Delay if possible + multidisciplinary consultation','finish', true,{risk:-8, reveal:'Active issue present'}),
+          A('Proceed to surgery regardless','prior', false,{risk:+12}),
+          A('Order stress test first','prior', false,{risk:+6})
+        ] : [
+          A('No active issues — continue assessment','prior', true,{risk:-4, reveal:'No active cardiac issue'}),
+          A('Proceed to surgery now','finish', false,{risk:+8}),
+          A('Stress test anyway','prior', false,{risk:+4})
+        ]
+      };
+
+    case 'prior':
+      return {
+        title: 'Does the patient have a prior coronary stent?',
+        options: C.priorStent ? [
+          A('Consider specialty consultation; continue pathway','mace', true,{risk:-2, reveal:'Prior stent'}),
+          A('Cancel surgery until stent removed','mace', false,{risk:+6}),
+          A('Ignore and proceed','mace', false,{risk:+6})
+        ] : [
+          A('No prior stent — continue','mace', true,{risk:-1, reveal:'No stent history'}),
+          A('Send to cath lab now','mace', false,{risk:+6})
+        ]
+      };
+
+    case 'mace':
+      return {
+        title: 'Estimated risk of peri-operative MACE ≥1%?',
+        options: C.maceHigh ? [
+          A('Yes — evaluate functional capacity next','mets', true,{risk:+2, reveal:'MACE ≥1%'}),
+          A('Proceed to surgery','finish', false,{risk:+10}),
+          A('Skip to stress test','stress', false,{risk:+6})
+        ] : [
+          A('No — proceed to surgery','finish', true,{risk:-6, reveal:'MACE <1%'}),
+          A('Do stress test anyway','mets', false,{risk:+5}),
+          A('Admit for invasive testing','mets', false,{risk:+8})
+        ]
+      };
+
+    case 'mets':
+      return {
+        title: 'Functional capacity (METs) ≥4?',
+        options: C.metsGood ? [
+          A('Yes — proceed to surgery','finish', true,{risk:-6, reveal:'≥4 METs'}),
+          A('Cardiology consult first','finish', false,{risk:+4}),
+          A('Stress test anyway','stress', false,{risk:+5})
+        ] : [
+          A('No — would testing change management?','change', true,{risk:+2, reveal:'<4 METs'}),
+          A('Proceed to surgery anyway','finish', false,{risk:+10})
+        ]
+      };
+
+    case 'change':
+      return {
+        title: 'Would further testing affect decision-making or peri-operative care?',
+        options: C.testingAffects ? [
+          A('Yes — conduct noninvasive stress testing','stress', true,{risk:+1, reveal:'Testing will change mgmt'}),
+          A('No — proceed to surgery','finish', false,{risk:+7})
+        ] : [
+          A('No — proceed to surgery','finish', true,{risk:-3, reveal:'Testing wouldn’t change care'}),
+          A('Yes — stress test','stress', false,{risk:+5})
+        ]
+      };
+
+    case 'stress':
+      return {
+        title: 'Noninvasive stress testing result?',
+        options: C.stressLow ? [
+          A('Low-risk findings — proceed to surgery','finish', true,{risk:-6, reveal:'Stress: low risk'}),
+          A('Cancel surgery','finish', false,{risk:+4}),
+          A('Admit for invasive angiography','finish', false,{risk:+6})
+        ] : [
+          A('Intermediate/high-risk — obtain cardiology consultation','finish', true,{risk:+2, reveal:'Stress: ↑ risk'}),
+          A('Proceed to surgery anyway','finish', false,{risk:+12})
+        ]
+      };
+
+    case 'finish': return { title:'', options:[] };
+  }
 }
 
 function select(opt, btn){
@@ -472,7 +468,6 @@ function select(opt, btn){
   }
   updateMeta();
 
-  // reveal the correct option quickly
   Array.from($('#options').children).forEach(el=>{
     if (el!==btn && el.dataset.ok==='1') el.classList.add('ok');
   });
@@ -490,7 +485,6 @@ function advanceByGuideline(){
   render();
 }
 
-/* ---------- end screen ---------- */
 function showEnd(){
   const opts=$('#options'); opts.innerHTML='';
   const ok = state.lives>0;
@@ -508,14 +502,12 @@ function showEnd(){
   opts.appendChild(restartBtn);
 }
 
-/* ---------- progress / restart ---------- */
 function restart(){
   const bar = $('#bar'); const pct = Math.min(100, (round%12)/12*100); bar.style.inset = `0 ${100-pct}% 0 0`;
   startGame();
 }
 
-/* ---------- mount ---------- */
-attachLifelines();
+/* mount */
 startGame();
 </script>
 </body>
