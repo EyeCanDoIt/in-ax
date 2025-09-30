@@ -1,0 +1,529 @@
+---
+title: Perioperative Cardiac Risk — Game
+layout: template
+filename: cvra
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Perioperative Cardiac Risk — Game</title>
+
+  <!-- Shared site-wide CSS -->
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../assets/css/echo.css">
+
+  <style>
+    .echo-image-wrap{ --echo-min-h: 420px; }
+
+    /* Center stage content (no media here, just a clean prompt card) */
+    .cv-stage{
+      position:absolute; inset:16px; display:flex; align-items:center; justify-content:center;
+      padding: clamp(12px, 2vw, 20px);
+    }
+    .cv-card{
+      max-width: 960px; width:100%;
+      background:rgba(2,6,23,.55);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:16px; padding:18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+    .cv-title{ font-size:1.25rem; font-weight:900; color:#e6edf9; margin:0 0 .35rem; }
+    .cv-sub{ color:#cbd5e1; margin:0 0 .9rem; }
+    .cv-case{ color:#a5b4fc; font-weight:800; }
+
+    .cv-options{
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap:12px; margin-top:.6rem;
+    }
+    .cv-btn{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      color:#e6edf9; padding:12px 14px; border-radius:12px; text-align:left;
+      cursor:pointer; font-weight:800;
+      transition:.16s ease transform, .16s ease border-color, .16s ease background;
+    }
+    .cv-btn small{ display:block; opacity:.85; font-weight:700; }
+    .cv-btn:hover{ transform:translateY(-2px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.08); }
+    .cv-btn.ok{ outline:2px solid #34d399; }
+    .cv-btn.no{ outline:2px solid #f87171; }
+
+    /* Lives pill */
+    .lives-pill{
+      position:absolute; right:12px; top:12px; z-index:5;
+      padding:.45rem .7rem; border-radius:999px;
+      background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.12);
+      color:#e8eefc; font-weight:900; display:flex; align-items:center; gap:.35rem;
+    }
+    .heart{ filter: drop-shadow(0 0 6px rgba(248,113,113,.35)); font-size:1.05rem; }
+    .heart.off{ opacity:.3; filter:none; }
+
+    /* Progress under header */
+    .cv-crumbs{ color:#93a1b7; font-weight:800; }
+
+    /* Tiny tag bottom-right */
+    .scene-tag{
+      position:absolute; right:12px; bottom:12px; z-index:4;
+      padding:.3rem .55rem; border-radius:8px;
+      background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12);
+      color:#cbd5e1; font-size:.85rem;
+    }
+  </style>
+</head>
+<body class="echo">
+  <!-- Header -->
+  <header class="container">
+    <div class="nav-box">
+      <div class="nav-row">
+        <a class="brand" href="../" aria-label="In-Ax — home">
+          <img class="logo" src="https://eyecandoit.github.io/in-ax/images/inaxlogo1.png" alt="In-Ax logo" />
+        </a>
+
+        <nav class="tabs" aria-label="Primary">
+          <a class="tab" href="../" data-match="/">Home</a>
+          <a class="tab" href="../at/" data-match="/at">AT</a>
+          <a class="tab" href="../tee/" data-match="/tee">TEE</a>
+          <a class="tab" href="../daa/" data-match="/daa">DAA</a>
+          <a class="tab active" href="./" data-match="/cvra">CVRA</a>
+          <a class="tab nav-disclaimer" href="../disclaimer.html"><span class="label-extra">Read </span>Disclaimer</a>
+        </nav>
+
+        <div class="subtitle">Perioperative Cardiac Risk — learn by playing!</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Game -->
+  <div class="echo-root">
+    <div class="echo-app">
+      <div class="echo-header">
+        <div class="echo-title-wrap">
+          <h1 class="echo-title">Perioperative Cardiac Risk</h1>
+          <span class="echo-sub">Choose the guideline-concordant next step</span>
+        </div>
+
+        <div class="echo-meta">
+          <span id="scorePill" class="echo-pill">Score: 0</span>
+          <span id="stepPill" class="echo-pill cv-crumbs">Step 1</span>
+        </div>
+      </div>
+
+      <section class="echo-card">
+        <div id="topBanner" class="echo-topbanner" hidden></div>
+
+        <div class="echo-stage">
+          <div id="wrap" class="echo-image-wrap">
+            <!-- lives -->
+            <div id="lives" class="lives-pill">
+              <span>Lives:</span>
+              <span class="heart" id="h1">❤</span>
+              <span class="heart" id="h2">❤</span>
+              <span class="heart" id="h3">❤</span>
+            </div>
+
+            <!-- centered prompt -->
+            <div class="cv-stage">
+              <div class="cv-card">
+                <div class="cv-title" id="qTitle">Question</div>
+                <div class="cv-sub">
+                  <span class="cv-case" id="caseText">Case details…</span><br/>
+                  Choose the next best step:
+                </div>
+                <div class="cv-options" id="answers"></div>
+              </div>
+            </div>
+
+            <!-- feedback flashes/checkmarks -->
+            <div id="flash" class="echo-flash" aria-hidden="true"></div>
+            <div id="signal" class="echo-signal" aria-hidden="true"></div>
+
+            <!-- scene tag -->
+            <div id="sceneTag" class="scene-tag" hidden></div>
+          </div>
+        </div>
+
+        <div class="echo-footer">
+          <div class="echo-progress"><div id="bar" class="echo-bar"></div></div>
+          <div class="echo-controls">
+            <button id="restart" class="echo-link">Restart</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="toast" class="echo-toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <footer class="container" style="color:#93a1b7; text-align:center; padding:20px 0 28px; font-size:.9rem;">
+    © <span id="y"></span> In-Ax
+  </footer>
+
+  <script>
+    // Mark active tab + year
+    (function(){
+      const path = location.pathname.replace(/\/+$/,'') || '/';
+      document.querySelectorAll('.tab').forEach(a=>{
+        const m=a.getAttribute('data-match');
+        const isRoot = path==='/' || /\/index\.html$/.test(path);
+        const on = m==='/'?isRoot:path.includes(m);
+        if(on){ a.classList.add('active'); a.setAttribute('aria-selected','true'); }
+      });
+      document.getElementById('y').textContent = new Date().getFullYear();
+    })();
+
+    // Helpers
+    const $ = (s,el=document)=>el.querySelector(s);
+    const shuffle=a=>{const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b};
+    const toast = $('#toast');
+    function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('echo-show'),1400); }
+
+    // UI refs
+    const answers = $('#answers');
+    const title   = $('#qTitle');
+    const caseText= $('#caseText');
+    const stepPill= $('#stepPill');
+    const scorePill=$('#scorePill');
+    const flash   = $('#flash');
+    const signal  = $('#signal');
+    const banner  = $('#topBanner');
+    const sceneTag= $('#sceneTag');
+    $('#restart').addEventListener('click', start);
+
+    // Lives
+    function setLives(l){ [$('#h1'),$('#h2'),$('#h3')].forEach((h,i)=> h.classList.toggle('off', i>=l)); }
+
+    // RNG
+    const RNG = (seed=Date.now()%2147483647)=>()=> (seed=seed*48271%2147483647)/2147483647;
+    let rng;
+
+    // Case model (randomized flags that drive the flow)
+    function randBool(p){ return rng() < p; }
+    function newCase(){
+      // These flags control which branches become correct.
+      const urgent = randBool(0.22);                       // urgent/emergent?
+      const ecgIndicated = !urgent && randBool(0.45);      // “select cases”
+      const redFlags = !urgent && randBool(0.28);          // ACS/acute HF/arrhythmia/severe valve
+      const priorStent = !urgent && !redFlags && randBool(0.18);
+      const maceHigh = !urgent && !redFlags && randBool(0.5); // ≥1% by RCRI etc.
+      const metGood  = !urgent && !redFlags && randBool(0.6);
+      const willTestingChange = !metGood && randBool(0.55);
+      const stressResult = willTestingChange ? (randBool(0.7) ? 'low' : 'intermediate_high') : 'low';
+
+      // Flavor text
+      const blurb = [
+        urgent ? 'Surgery timing: urgent/emergent.' : 'Elective timing.',
+        ecgIndicated ? 'ECG/echo likely useful based on history.' : 'No obvious need for ECG/echo.',
+        redFlags ? 'Possible ACS/acute HF/arrhythmia/severe valve disease.' : 'No acute red-flag condition.',
+        priorStent ? 'Prior coronary stent.' : 'No prior stent.',
+        maceHigh ? 'RCRI ≥ 1% (e.g., insulin DM/CKD/ischemic hx).' : 'RCRI < 1%.',
+        metGood ? 'Functional capacity >4 METs.' : 'Poor/unknown METs.',
+        willTestingChange ? 'Further testing would change management.' : 'Testing unlikely to change management.',
+        willTestingChange ? `If tested, expected stress test result: ${stressResult.replace('_','/')}.` : ''
+      ].filter(Boolean).join(' ');
+      return { urgent, ecgIndicated, redFlags, priorStent, maceHigh, metGood, willTestingChange, stressResult, blurb };
+    }
+
+    // Flow steps in order
+    const STEPS = [
+      'urgent',
+      'ecg_echo',
+      'red_flags',
+      'stent',
+      'mace',
+      'optimize',
+      'mets',
+      'test_decision',
+      'stress_test',
+      'stress_result'
+    ];
+
+    // Generates the question + options for the current step given the case flags.
+    function buildQuestion(step, C){
+      const opt = (label, key, small)=>({label, key, small});
+      switch(step){
+        case 'urgent':
+          return {
+            scene:'Initial',
+            title:'First decision',
+            prompt:'Surgery timing check',
+            options: shuffle([
+              opt('Proceed directly to surgery (urgent/emergent)','go_surg','if urgent'),
+              opt('Continue with evaluation','continue','if not urgent'),
+              opt('Order noninvasive stress testing now','premature')
+            ]),
+            correct: C.urgent ? 'go_surg' : 'continue',
+            rationale: C.urgent ? 'Urgent/emergent surgery → proceed, manage periop risk intra-op.' : 'Not urgent → continue the evaluation.'
+          };
+
+        case 'ecg_echo':
+          return {
+            scene:'Testing (screen)',
+            title:'Consider ECG and/or echocardiography in select cases',
+            prompt:'What is the best next step?',
+            options: shuffle([
+              opt('Order ECG ± echocardiography','order_ecg'),
+              opt('Skip ECG/echo and continue','skip_ecg'),
+              opt('Cancel surgery outright','cancel')
+            ]),
+            correct: C.ecgIndicated ? 'order_ecg' : 'skip_ecg',
+            rationale: C.ecgIndicated ? 'History suggests benefit from baseline ECG/echo.' : 'No indication → proceed to risk factor assessment.'
+          };
+
+        case 'red_flags':
+          return {
+            scene:'Risk factor screen',
+            title:'Patient risk factor assessment',
+            prompt:'Any ACS/acute HF/arrhythmia/severe valve disease?',
+            options: shuffle([
+              opt('Delay surgery & obtain multidisciplinary consultation','delay'),
+              opt('Proceed without delay','no_delay'),
+              opt('Go to cath lab now','cath')
+            ]),
+            correct: C.redFlags ? 'delay' : 'no_delay',
+            rationale: C.redFlags ? 'Unstable cardiac condition → delay if possible and consult.' : 'No acute red flag → continue.'
+          };
+
+        case 'stent':
+          return {
+            scene:'History',
+            title:'Prior coronary stent?',
+            prompt:'Choose the next step.',
+            options: shuffle([
+              opt('Consider specialty (cardiology) consultation','stent_consult'),
+              opt('Ignore stent status; proceed','ignore'),
+              opt('Send for immediate stress test','premature_test')
+            ]),
+            correct: C.priorStent ? 'stent_consult' : 'ignore',
+            rationale: C.priorStent ? 'Stent present → specialty consultation about timing/therapy.' : 'No stent → continue to MACE risk.'
+          };
+
+        case 'mace':
+          return {
+            scene:'Risk estimate',
+            title:'Perioperative MACE risk (e.g., RCRI)',
+            prompt:'Risk ≥1% ? Choose the next step.',
+            options: shuffle([
+              opt('Proceed to surgery','go_surg'),
+              opt('Optimize medical therapy and continue evaluation','opt'),
+              opt('Routine angiography','angio')
+            ]),
+            correct: C.maceHigh ? 'opt' : 'go_surg',
+            rationale: C.maceHigh ? '≥1%: optimize therapy and assess functional capacity.' : '<1%: proceed to surgery.'
+          };
+
+        case 'optimize':
+          return {
+            scene:'Medical therapy',
+            title:'Optimize therapy',
+            prompt:'What comes next?',
+            options: shuffle([
+              opt('Assess functional capacity (>4 METs)','mets'),
+              opt('Skip to stress test','jump'),
+              opt('Proceed to surgery immediately','skip')
+            ]),
+            correct: 'mets',
+            rationale: 'After optimization, evaluate functional capacity.'
+          };
+
+        case 'mets':
+          return {
+            scene:'Functional capacity',
+            title:'Functional capacity assessment',
+            prompt:'Patient METs status guides the next step.',
+            options: shuffle([
+              opt('Proceed to surgery','go_surg'),
+              opt('Decide if further testing will change management','decide_test'),
+              opt('Refer for revascularization','revasc')
+            ]),
+            correct: C.metGood ? 'go_surg' : 'decide_test',
+            rationale: C.metGood ? '>4 METs: proceed to surgery.' : 'Poor/unknown METs: test only if it will change management.'
+          };
+
+        case 'test_decision':
+          return {
+            scene:'Test utility',
+            title:'Will testing change management?',
+            prompt:'Pick the best course.',
+            options: shuffle([
+              opt('Proceed to surgery without testing','go_surg'),
+              opt('Order noninvasive stress testing','order_stress'),
+              opt('Cancel surgery','cancel')
+            ]),
+            correct: C.willTestingChange ? 'order_stress' : 'go_surg',
+            rationale: C.willTestingChange ? 'If it will change management → do stress testing.' : 'If not → proceed to surgery.'
+          };
+
+        case 'stress_test':
+          return {
+            scene:'Noninvasive testing',
+            title:'Conduct stress testing',
+            prompt:'What is the immediate next step?',
+            options: shuffle([
+              opt('Perform noninvasive stress testing','do_stress'),
+              opt('Start anticoagulation','anticoag'),
+              opt('Proceed to surgery regardless','jump')
+            ]),
+            correct: 'do_stress',
+            rationale: 'Perform the stress test.'
+          };
+
+        case 'stress_result':
+          return {
+            scene:'Test result',
+            title:'Interpret stress test',
+            prompt:'Act on the result.',
+            options: shuffle([
+              opt('Proceed to surgery','go_surg'),
+              opt('Conduct cardiovascular consultation','cv_consult'),
+              opt('Schedule PCI for all positive tests','pci_all')
+            ]),
+            correct: (C.stressResult==='low') ? 'go_surg' : 'cv_consult',
+            rationale: (C.stressResult==='low')
+              ? 'Low-risk findings → proceed to surgery.'
+              : 'Intermediate/high-risk findings → consult cardiology.'
+          };
+      }
+    }
+
+    // Engine state
+    let state;
+    function start(){
+      rng = RNG();
+      state = {
+        case: newCase(),
+        stepIndex: 0,
+        score: 0,
+        lives: 3
+      };
+      setLives(state.lives);
+      scorePill.textContent = 'Score: 0';
+      render();
+    }
+
+    function flashFeedback(ok){
+      flash.style.setProperty('--echo-flash', ok ? 'rgba(34,197,94,.28)' : 'rgba(248,113,113,.28)');
+      flash.classList.add('show');
+      signal.textContent = ok ? '✔' : '✖';
+      signal.classList.toggle('ok', ok);
+      signal.classList.toggle('no', !ok);
+      signal.classList.add('show');
+      setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); }, 600);
+    }
+
+    function setBanner(text,color){ banner.textContent=text||''; banner.hidden=!text; banner.style.color=color||''; }
+
+    function render(){
+      const stepKey = STEPS[state.stepIndex];
+      const q = buildQuestion(stepKey, state.case);
+
+      // header meta
+      stepPill.textContent = `Step ${state.stepIndex+1} / ${STEPS.length}`;
+      const pct = (state.stepIndex / STEPS.length) * 100;
+      $('#bar').style.inset = `0 ${100-pct}% 0 0`;
+
+      // card text
+      title.textContent = q.title;
+      caseText.textContent = state.case.blurb;
+      sceneTag.hidden = false;
+      sceneTag.textContent = q.scene;
+
+      // answers
+      answers.innerHTML = '';
+      q.options.forEach((o,i)=>{
+        const b = document.createElement('button');
+        b.className = 'cv-btn';
+        b.innerHTML = `<div>${i+1}. ${o.label}</div>${o.small?`<small>${o.small}</small>`:''}`;
+        b.addEventListener('click', ()=>select(o.key, q.correct, q.rationale, b));
+        answers.appendChild(b);
+      });
+
+      setBanner(q.prompt, '#e2e8f0');
+    }
+
+    function next(){
+      if (state.stepIndex < STEPS.length - 1){
+        state.stepIndex += 1;
+        render();
+      } else {
+        // End screen
+        answers.innerHTML = '';
+        setBanner('', '');
+        const box = document.createElement('div');
+        box.style.padding='14px';
+        const ok = state.lives>0;
+        box.innerHTML = `<h2 style="color:${ok?'#34d399':'#f87171'};margin:.2rem 0 .6rem;">${ok?'Case complete 🎉':'Case over'}</h2>
+          <p style="color:#cbd5e1">Score: <strong>${state.score}</strong>. Lives left: ${state.lives}/3.</p>
+          <button class="echo-btn" type="button">Play again</button>`;
+        box.querySelector('button').addEventListener('click', start);
+        answers.appendChild(box);
+      }
+    }
+
+    function select(key, correctKey, rationale, btn){
+      const ok = key === correctKey;
+      // decorate clicked button
+      btn.classList.add(ok ? 'ok' : 'no');
+      // score / lives
+      if (ok){
+        state.score += 1;
+        scorePill.textContent = `Score: ${state.score}`;
+        setBanner('✅ Correct — ' + (rationale||''), '#34d399');
+      } else {
+        state.lives = Math.max(0, state.lives - 1);
+        setLives(state.lives);
+        setBanner('❌ Not ideal — ' + (rationale||'follow the algorithm'), '#f87171');
+        if (state.lives === 0){
+          // show end but still march through remaining steps to teach
+          showToast('All lives lost — finishing the case for learning');
+        }
+      }
+      flashFeedback(ok);
+
+      // Advance automatically after a short beat (teaches flow even if wrong)
+      setTimeout(()=>{ setBanner(''); followAlgorithmNext(); }, 850);
+    }
+
+    // Move forward according to the algorithm logic (not the chosen button)
+    function followAlgorithmNext(){
+      const stepKey = STEPS[state.stepIndex];
+      const C = state.case;
+
+      // Some steps skip forward depending on flags
+      if (stepKey === 'urgent'){
+        if (C.urgent){ state.stepIndex = STEPS.length - 1; } // jump to end (proceed to surgery)
+        else { state.stepIndex += 1; }
+        return render();
+      }
+      if (stepKey === 'ecg_echo'){ state.stepIndex += 1; return render(); }
+      if (stepKey === 'red_flags'){
+        if (C.redFlags){ state.stepIndex = STEPS.length - 1; return render(); } // consult path → essentially end
+        state.stepIndex += 1; return render();
+      }
+      if (stepKey === 'stent'){ state.stepIndex += 1; return render(); }
+      if (stepKey === 'mace'){
+        if (!C.maceHigh){ state.stepIndex = STEPS.length - 1; return render(); } // proceed to surgery
+        state.stepIndex += 1; return render(); // to optimize
+      }
+      if (stepKey === 'optimize'){ state.stepIndex += 1; return render(); } // to METs
+      if (stepKey === 'mets'){
+        if (C.metGood){ state.stepIndex = STEPS.length - 1; return render(); } // proceed to surgery
+        state.stepIndex += 1; return render(); // to test decision
+      }
+      if (stepKey === 'test_decision'){
+        if (!C.willTestingChange){ state.stepIndex = STEPS.length - 1; return render(); } // proceed to surgery
+        state.stepIndex += 1; return render(); // to stress_test
+      }
+      if (stepKey === 'stress_test'){ state.stepIndex += 1; return render(); } // to stress_result
+      if (stepKey === 'stress_result'){ return next(); }
+
+      // Default
+      next();
+    }
+
+    // Start
+    start();
+  </script>
+</body>
+</html>
