@@ -15,23 +15,45 @@ filename: cvra
 <link rel="stylesheet" href="../assets/css/echo.css">
 
 <style>
-  /* Stage sizing (keep roomy on desktop) */
+  :root{ --side-w: 320px; }
+
+  /* Keep the stage roomy; nothing here shrinks it */
   .echo-image-wrap{ --echo-min-h: 520px; position:relative; }
   @media (max-width: 900px){ .echo-image-wrap{ --echo-min-h: 440px; } }
 
-  /* Inside the stage we render a card with the step + options */
+  /* Main card that holds vignette, question, answers */
   .cv-card{
-    position:absolute; inset:16px 16px 16px 16px; z-index:3;
+    position:absolute; inset:16px 16px 16px 16px;
+    /* Reserve room for the sidebar so they don't overlap */
+    margin-right: calc(var(--side-w) + 16px);
+    z-index:3;
     border:1px solid rgba(255,255,255,.12);
     border-radius:16px; background:rgba(2,6,23,.65);
     display:flex; flex-direction:column; padding:14px;
     backdrop-filter:saturate(1.1) blur(2px);
   }
+  /* When the layout stacks (tablet/phone), give the card full width */
+  @media (max-width: 1100px){
+    .cv-card{ margin-right: 0; inset:12px; }
+  }
+
   .cv-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .cv-title{ font-size:1.15rem; font-weight:900; color:#e6edf9; letter-spacing:.2px; }
-  .cv-vignette{ color:#cbd5e1; opacity:.9; margin-top:2px; font-size:.95rem; }
+  .pill-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .lives-pill,.timer-pill,.best-pill{
+    padding:.35rem .6rem; border-radius:999px; background:rgba(15,23,42,.85);
+    border:1px solid rgba(255,255,255,.12); color:#e6edf9; font-weight:900;
+  }
+  .timer-pill.warn{ color:#f59e0b; } .timer-pill.danger{ color:#ef4444; }
+
+  .cv-vignette{ color:#cbd5e1; opacity:.95; margin:.25rem 0 .4rem; line-height:1.35; }
+  .cv-question{ color:#e6edf9; font-weight:900; font-size:1.08rem; letter-spacing:.2px; margin:.2rem 0 .2rem; }
 
   .cv-sub{ color:#a7b4d6; font-weight:800; margin:.45rem 0 .2rem; }
+  .cv-conf{ display:flex; align-items:center; gap:10px; }
+  .cv-conf input{ flex:1; }
+  .cv-conf .cv-chip{ min-width:64px; text-align:center; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); padding:.25rem .5rem; border-radius:10px; font-weight:800; color:#e6edf9; }
+  #lifelines button{ margin-left:.35rem; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#e6edf9; border-radius:8px; padding:.25rem .45rem; font-weight:800; cursor:pointer; }
+  #lifelines button:disabled{ opacity:.55; cursor:not-allowed; }
 
   .cv-options{ display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:10px; margin-top:10px; }
   .cv-btn{
@@ -40,33 +62,17 @@ filename: cvra
     font-weight:800; transition:.15s ease transform,.15s ease border-color,.15s ease background;
   }
   .cv-btn:hover{ transform:translateY(-1px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.10); }
-  .cv-btn.ok{ outline:2px solid #34d399; }
-  .cv-btn.no{ outline:2px solid #ef4444; }
+  .cv-btn.ok{ outline:2px solid #34d399; } .cv-btn.no{ outline:2px solid #ef4444; }
 
-  /* Pills (lives, timer) */
-  .pill-row{ display:flex; gap:8px; align-items:center; }
-  .lives-pill,.timer-pill,.best-pill{
-    padding:.35rem .6rem; border-radius:999px; background:rgba(15,23,42,.85);
-    border:1px solid rgba(255,255,255,.12); color:#e6edf9; font-weight:900;
-  }
-  .heart{ filter:drop-shadow(0 0 8px rgba(239,68,68,.35)); }
-  .timer-pill.warn{ color:#f59e0b; }
-  .timer-pill.danger{ color:#ef4444; }
-
-  /* Confidence slider */
-  .cv-conf{ display:flex; align-items:center; gap:10px; margin-top:8px; }
-  .cv-conf input{ flex:1; }
-  .cv-conf .cv-chip{ min-width:64px; text-align:center; }
-
-  /* Right overlay sidebar (does NOT shrink the stage) */
+  /* Right overlay sidebar (does NOT shrink stage) */
   .cv-sidebar{
-    position:absolute; right:16px; top:16px; width:300px; z-index:4;
+    position:absolute; right:16px; top:16px; width:var(--side-w); z-index:4;
     border:1px solid rgba(255,255,255,.12); border-radius:16px;
     background:rgba(2,6,23,.60); padding:12px; display:flex; flex-direction:column; gap:10px;
     pointer-events:auto;
   }
   .cv-side-head{ font-weight:900; color:#e6edf9; letter-spacing:.2px; }
-  .cv-gauge{ position:relative; height:110px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.04); }
+  .cv-gauge{ position:relative; height:120px; border:1px solid rgba(255,255,255,.10); border-radius:12px; background:rgba(255,255,255,.04); }
   .cv-needle{ position:absolute; left:0; top:0; bottom:0; width:40%; border-radius:12px;
     background:linear-gradient(90deg,#34d399,#fbbf24,#ef4444); transition: width .3s ease; }
   .cv-gauge-label{ position:absolute; left:12px; bottom:8px; color:#cbd5e1; font-weight:800; }
@@ -75,10 +81,9 @@ filename: cvra
   .cv-links{ display:flex; gap:8px; flex-wrap:wrap; }
   .cv-link{ border:1px solid rgba(94,234,212,.35); color:#a7f3d0; background:rgba(94,234,212,.08); border-radius:10px; padding:.35rem .6rem; font-weight:900; text-decoration:none; }
 
-  /* Keep sidebar responsive: stack on small screens */
+  /* Stack sidebar on small screens (then the card no longer reserves space) */
   @media (max-width: 1100px){
     .cv-sidebar{ position:static; width:auto; margin-top:10px; }
-    .cv-card{ inset:12px; }
   }
 </style>
 </head>
@@ -136,6 +141,7 @@ filename: cvra
               </div>
 
               <div id="vignette" class="cv-vignette"></div>
+              <div id="question" class="cv-question"></div>
 
               <div class="cv-sub">Confidence</div>
               <div class="cv-conf">
@@ -223,16 +229,14 @@ function seedFromURL(){
 }
 
 function buildCase(r){
-  // Random flags (weighted to feel real)
-  const urgent         = r() < 0.25;                   // 25% urgent
-  const activeIssues   = r() < 0.20;                   // ACS/acute HF/severe valve/arrhythmia
+  const urgent         = r() < 0.25;
+  const activeIssues   = r() < 0.20;
   const priorStent     = r() < 0.15;
-  const maceHigh       = r() < 0.45;                   // ≥1% MACE risk
-  const metsGood       = r() < 0.55;                   // >=4 METS
-  const testingAffects = r() < 0.55;                   // would results change mgmt?
-  const stressLow      = r() < 0.60;                   // if done, result
+  const maceHigh       = r() < 0.45;
+  const metsGood       = r() < 0.55;
+  const testingAffects = r() < 0.55;
+  const stressLow      = r() < 0.60;
   const sType = ['low-risk','intermediate','high-risk'][ (maceHigh? (r()<0.5?1:2) : 0) ];
-
   const surg = ['superficial','orthopedic','intra-abdominal','vascular'][ (maceHigh? (r()<0.5?2:3) : (r()<0.5?0:1)) ];
   const text = [
     urgent? 'Urgent surgery (≤24 h). ':'Elective surgery. ',
@@ -242,7 +246,6 @@ function buildCase(r){
     maceHigh? 'Estimated MACE ≥1%. ':'Estimated MACE <1%. ',
     `Functional capacity ${metsGood? '≥4':'<4'} METs.`
   ].join('');
-
   return { urgent, activeIssues, priorStent, maceHigh, metsGood, testingAffects, stressLow, surgType:sType, vignette:text };
 }
 
@@ -283,7 +286,6 @@ function startTimer(sec){
     t.classList.toggle('danger', tLeft<=3);
     if(tLeft<=0){
       clearInterval(timer);
-      // Auto penalty and follow algorithm
       state.lives = Math.max(0,state.lives-1); setLives(state.lives);
       setRisk(state.risk+10); flashFeedback(false); showToast('⏱️ Time up — life lost');
       advanceByGuideline();
@@ -322,11 +324,11 @@ document.addEventListener('keydown', (e)=>{
 function render(){
   const C = state.case;
   setLives(state.lives); updateMeta(); refreshLifelines();
+
+  // Show vignette + make sure the actual question text is in the card
   $('#vignette').textContent = C.vignette;
 
   const opts = $('#options'); opts.innerHTML='';
-
-  // Confidence UI
   const conf = $('#conf'), confVal=$('#confVal');
   conf.oninput = ()=> confVal.textContent = conf.value+'%';
   confVal.textContent = conf.value+'%';
@@ -428,14 +430,18 @@ function render(){
       return showEnd();
   }
 
+  // Put the actual question into the card (center), not only the banner
+  $('#question').textContent = q.title;
+
   $('#stepPill').textContent = `Step ${stepIndex()}`;
-  setBanner(q.title, '#e2e8f0');
+  setBanner('', ''); // keep the top slim banner free for hints only
   attachLifelines();
 
   q.options.forEach((o,i)=>{
     const b = document.createElement('button');
-    b.className='cv-btn'; b.innerHTML = `<strong>${i+1}. ${o.text}</strong>${o.small?`<div style="opacity:.8;font-weight:700;margin-top:4px">${o.small}</div>`:''}`;
-    b.dataset.next = o.next; b.dataset.ok = o.ok?'1':'0'; b.dataset.risk = o.meta?.risk ?? 0;
+    b.className='cv-btn';
+    b.innerHTML = `<strong>${i+1}. ${o.text}</strong>${o.small?`<div style="opacity:.8;font-weight:700;margin-top:4px">${o.small}</div>`:''}`;
+    b.dataset.next = o.next; b.dataset.ok = o.ok?'1':'0';
     b.addEventListener('click', ()=> select(o, b));
     $('#options').appendChild(b);
   });
@@ -448,18 +454,13 @@ function stepIndex(){
 
 function select(opt, btn){
   stopTimer();
-
-  // apply risk delta & reveals
   if (opt.meta?.risk) setRisk(state.risk + opt.meta.risk);
   if (opt.meta?.reveal) reveal(opt.meta.reveal);
 
-  // confidence scoring / penalty
   const conf = +($('#conf').value||50);
-  const speedBonus = tLeft>=8 ? 2 : 1;
-
   if (opt.ok){
     btn.classList.add('ok'); flashFeedback(true);
-    state.score += (conf>=70?2:1) + speedBonus*0; // speed bonus optional; set to *1 to enable extra points
+    state.score += (conf>=70?2:1);
     state.streak++; state.best=Math.max(state.best,state.streak);
     localStorage.setItem('cvraBest', state.best);
     localStorage.setItem('cvraStreak', state.streak);
@@ -469,10 +470,9 @@ function select(opt, btn){
     state.streak = 0; localStorage.setItem('cvraStreak', 0);
     state.mistakes.push({ step: state.step, picked: opt.text });
   }
-
   updateMeta();
 
-  // quick visual hint of correct
+  // reveal the correct option quickly
   Array.from($('#options').children).forEach(el=>{
     if (el!==btn && el.dataset.ok==='1') el.classList.add('ok');
   });
@@ -485,81 +485,31 @@ function select(opt, btn){
 }
 
 function advanceByGuideline(){
-  // Used when timer expires: move along the safest path automatically
   const map = { urgent:'active', active:'prior', prior:'mace', mace:'mets', mets:'change', change:'stress', stress:'finish' };
   state.step = map[state.step] || 'finish';
   render();
 }
 
-/* ---------- end screen + teach-back ---------- */
-const TEACHBACK = [
-  { q:'When surgery is urgent (≤24 h), the best overall principle is to…',
-    a:['Proceed with surgery and defer testing that won’t change management (optimize oxygenation/risk factors as feasible).',
-       'Delay for a full noninvasive stress test.',
-       'Cancel and reschedule after months of optimization.'],
-    i:0 },
-  { q:'Further testing should be ordered when…',
-    a:['It’s available the same day.',
-       'Results are expected to change management or peri-op care.',
-       'The patient has any CV risk factors.'],
-    i:1 },
-  { q:'Patients with ≥4 METs functional capacity and MACE <1% should…',
-    a:['Proceed to surgery.',
-       'Undergo routine cath.',
-       'Be admitted for observation.'],
-    i:0 }
-];
-
+/* ---------- end screen ---------- */
 function showEnd(){
-  stopTimer();
   const opts=$('#options'); opts.innerHTML='';
-  const C = state.case;
-
+  const ok = state.lives>0;
   const done = document.createElement('div');
   done.style.padding='6px';
-  const ok = state.lives>0;
-  const summary = `
+  done.innerHTML = `
     <h2 style="margin:.2rem 0 .4rem;color:${ok?'#34d399':'#f87171'}">${ok?'Case complete 🎉':'Case failed'}</h2>
-    <p style="color:#cbd5e1;margin:0 0 .4rem">
-      Score: <strong>${state.score}</strong> • Streak: <strong>${state.streak}</strong> • Best: <strong>${state.best}</strong>
-    </p>
-    <p style="color:#a7b4d6;margin:0 0 .6rem">
-      Final risk meter: ${Math.round(state.risk)}%. Reveals: ${state.reveals.join(', ')||'—'}
-    </p>
-  `;
-  done.innerHTML = summary;
+    <p style="color:#cbd5e1;margin:0 0 .4rem">Score: <strong>${state.score}</strong> • Streak: <strong>${state.streak}</strong> • Best: <strong>${state.best}</strong></p>
+    <p style="color:#a7b4d6;margin:0 0 .6rem">Final risk meter: ${Math.round(state.risk)}%. Reveals: ${state.reveals.join(', ')||'—'}</p>`;
   opts.appendChild(done);
 
-  // Teach-back (random one, or pick something the user missed)
-  let tb = TEACHBACK[Math.floor(rng()*TEACHBACK.length)];
-  if (state.mistakes.length && rng()<0.7){
-    // steer to a relevant card
-    const step = state.mistakes[0].step;
-    if (step==='urgent') tb = TEACHBACK[0];
-    if (step==='change') tb = TEACHBACK[1];
-    if (step==='mets' || step==='mace') tb = TEACHBACK[2];
-  }
-
-  const q = document.createElement('div');
-  q.className='cv-sub'; q.style.marginTop='10px'; q.textContent='Teach-back: '+tb.q;
-  opts.appendChild(q);
-
-  const grid = document.createElement('div'); grid.className='cv-options'; opts.appendChild(grid);
-  tb.a.forEach((t,i)=>{
-    const b=document.createElement('button'); b.className='cv-btn'; b.innerHTML=`<strong>${i+1}. ${t}</strong>`;
-    b.addEventListener('click', ()=>{
-      const ok = (i===tb.i);
-      b.classList.add(ok?'ok':'no'); flashFeedback(ok);
-      if (ok){ state.score+=2; updateMeta(); }
-      setTimeout(()=> restart(), 800);
-    });
-    grid.appendChild(b);
-  });
+  const restartBtn = document.createElement('button');
+  restartBtn.className='cv-btn'; restartBtn.innerHTML='<strong>Play another case</strong>';
+  restartBtn.addEventListener('click', restart);
+  opts.appendChild(restartBtn);
 }
 
 /* ---------- progress / restart ---------- */
 function restart(){
-  // progress bar (simple)
   const bar = $('#bar'); const pct = Math.min(100, (round%12)/12*100); bar.style.inset = `0 ${100-pct}% 0 0`;
   startGame();
 }
