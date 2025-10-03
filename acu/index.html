@@ -17,115 +17,65 @@ filename: acu
   <style>
     :root{ --drawer-w: clamp(320px, 28vw, 420px); }
 
-    /* ===== Layout: game stays full width; research drawer floats (no reflow) ===== */
-    .game-grid{ display:block; }                 /* no two-column grid anymore */
+    /* game stays full width; research drawer floats */
+    .game-grid{ display:block; }
 
     .research-col{
-      position:fixed;                            /* float it */
-      right:clamp(8px, 2vw, 24px);
-      width:var(--drawer-w);
-      z-index:20;
-      pointer-events:auto;
+      position:fixed; right:clamp(8px,2vw,24px);
+      width:var(--drawer-w); z-index:20; pointer-events:auto;
     }
     .research-col[hidden]{ display:none; }
-
-    /* On smaller screens, drop it below the card (in-flow) so it doesn’t overlap */
     @media (max-width:1100px){
-      .research-col{
-        position:static;
-        width:auto;
-        margin-top:12px;
-      }
+      .research-col{ position:static; width:auto; margin-top:12px; }
     }
 
     .echo-image-wrap{ --echo-min-h: 420px; }
 
-    /* --- click feedback dots & persistent marker --- */
-    .acu-dot{
-      position:absolute; width:14px; height:14px; border-radius:999px;
-      transform:translate(-50%,-50%); z-index:6; pointer-events:none;
-      box-shadow:0 0 10px rgba(0,0,0,.35);
-    }
-    .acu-dot.bad{ background:#ef4444; }
-    .acu-dot.good{ background:#34d399; }
-
-    .acu-lock-ring{
-      position:absolute; border:2px solid rgba(94,234,212,.9);
-      border-radius:999px; transform:translate(-50%,-50%);
-      pointer-events:none; z-index:7; width:26px; height:26px;
-      box-shadow:0 0 22px rgba(94,234,212,.35);
-    }
-    .acu-lock-dot{
-      position:absolute; width:12px; height:12px; border-radius:999px;
-      transform:translate(-50%,-50%); z-index:8; pointer-events:none;
-      background:#34d399; box-shadow:0 0 12px rgba(34,197,94,.75);
-    }
+    /* click feedback + persistent marker */
+    .acu-dot{ position:absolute; width:14px; height:14px; border-radius:999px;
+      transform:translate(-50%,-50%); z-index:6; pointer-events:none; box-shadow:0 0 10px rgba(0,0,0,.35);}
+    .acu-dot.bad{ background:#ef4444; } .acu-dot.good{ background:#34d399; }
+    .acu-lock-ring{ position:absolute; border:2px solid rgba(94,234,212,.9);
+      border-radius:999px; transform:translate(-50%,-50%); pointer-events:none; z-index:7; width:26px; height:26px; box-shadow:0 0 22px rgba(94,234,212,.35);}
+    .acu-lock-dot{ position:absolute; width:12px; height:12px; border-radius:999px; transform:translate(-50%,-50%);
+      z-index:8; pointer-events:none; background:#34d399; box-shadow:0 0 12px rgba(34,197,94,.75); }
 
     /* hint rings */
-    .acu-ring{
-      position:absolute; border:2px dashed rgba(94,234,212,.75);
-      border-radius:999px; transform:translate(-50%,-50%);
-      pointer-events:none; z-index:5;
-      animation: acuPulse 1.2s ease-in-out infinite;
-      box-shadow:0 0 30px rgba(94,234,212,.25), inset 0 0 12px rgba(94,234,212,.12);
-    }
-    @keyframes acuPulse{
-      0%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
-      70%{ transform:translate(-50%,-50%) scale(1.08); opacity:.6; }
-      100%{ transform:translate(-50%,-50%) scale(.92); opacity:.9; }
-    }
+    .acu-ring{ position:absolute; border:2px dashed rgba(94,234,212,.75); border-radius:999px;
+      transform:translate(-50%,-50%); pointer-events:none; z-index:5; animation:acuPulse 1.2s ease-in-out infinite;
+      box-shadow:0 0 30px rgba(94,234,212,.25), inset 0 0 12px rgba(94,234,212,.12); }
+    @keyframes acuPulse{ 0%{transform:translate(-50%,-50%) scale(.92);opacity:.9}
+      70%{transform:translate(-50%,-50%) scale(1.08);opacity:.6} 100%{transform:translate(-50%,-50%) scale(.92);opacity:.9} }
 
-    .hint-pill{
-      position:absolute; left:12px; top:12px; z-index:7;
-      padding:.45rem .7rem; border-radius:999px;
-      background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.12);
-      color:#e8eefc; font-weight:800; display:flex; gap:.5rem; align-items:center;
-    }
-    .hint-pill button{
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06); color:#dbe7ff;
-      border-radius:8px; padding:.25rem .5rem; font-weight:800; cursor:pointer;
-    }
+    .hint-pill{ position:absolute; left:12px; top:12px; z-index:7; padding:.45rem .7rem; border-radius:999px;
+      background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.12); color:#e8eefc; font-weight:800; display:flex; gap:.5rem; align-items:center; }
+    .hint-pill button{ border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#dbe7ff;
+      border-radius:8px; padding:.25rem .5rem; font-weight:800; cursor:pointer; }
     .hint-text{ color:#cbd5e1; margin:6px 0 0; font-size:.95rem; }
 
-    /* ===== Right-drawer card ===== */
-    .rd-card{
-      border-radius:14px;
-      background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 20px 50px rgba(0,0,0,.45);
-      color:#e6edf9;
-      overflow:hidden;
-      margin-bottom:12px;
-    }
-    .rd-head{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px; padding:12px 14px; cursor:pointer; user-select:none;
-    }
+    /* right drawer cards */
+    .rd-card{ border-radius:14px; background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(15,23,42,.92));
+      border:1px solid rgba(255,255,255,.12); box-shadow:0 20px 50px rgba(0,0,0,.45); color:#e6edf9; overflow:hidden; margin-bottom:12px; }
+    .rd-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; cursor:pointer; user-select:none; }
     .rd-left{ display:flex; align-items:center; gap:10px; min-width:0; }
-    .rd-pill{
-      padding:.25rem .5rem; border-radius:999px;
-      background:rgba(94,234,212,.15);
-      border:1px solid rgba(94,234,212,.35);
-      color:#99f6e4; font-size:.8rem; font-weight:800; flex:0 0 auto;
-    }
+    .rd-pill{ padding:.25rem .5rem; border-radius:999px; background:rgba(94,234,212,.15); border:1px solid rgba(94,234,212,.35);
+      color:#99f6e4; font-size:.8rem; font-weight:800; flex:0 0 auto; }
     .rd-title{ font-weight:900; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .rd-chevron{ font-weight:900; opacity:.85; }
-
     .rd-body{ padding:0 14px 12px; color:#cbd5e1; font-size:.95rem; line-height:1.45; display:none; }
     .rd-actions{ display:flex; gap:10px; padding:0 14px 14px; justify-content:flex-end; flex-wrap:wrap; display:none; }
     .rd-card.open .rd-body, .rd-card.open .rd-actions{ display:block; }
 
-    .btn{
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);
-      color:#e6edf9; padding:.55rem .8rem; border-radius:10px; font-weight:800;
-      cursor:pointer; transition: transform .12s, border-color .12s, background .12s;
-    }
+    .btn{ border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#e6edf9;
+      padding:.55rem .8rem; border-radius:10px; font-weight:800; cursor:pointer; transition:transform .12s, border-color .12s, background .12s; }
     .btn:hover{ transform:translateY(-1px); border-color:rgba(94,234,212,.35); background:rgba(255,255,255,.1); }
     .btn-primary{ background:#1e293b; border-color:rgba(94,234,212,.35); }
     .btn-link{ text-decoration:none; display:inline-flex; align-items:center; gap:.5rem; }
     .btn .ext{ font-size:1.05em; opacity:.9; }
+
+    /* DEV pill */
+    .dev-pill{ position:absolute; right:12px; top:12px; z-index:8; padding:.35rem .6rem; border-radius:8px;
+      background:rgba(2,6,23,.85); border:1px solid rgba(94,234,212,.35); color:#a7f3d0; font-weight:800; font-variant-numeric:tabular-nums; }
   </style>
 </head>
 <body class="echo">
@@ -143,9 +93,7 @@ filename: acu
           <a class="tab" href="../at/" data-match="/at">AT</a>
           <a class="tab" href="../tee/" data-match="/tee">TEE</a>
           <a class="tab active" href="./" data-match="/acu">ACU</a>
-          <a class="tab nav-disclaimer" href="../disclaimer.html" target="_self" rel="noopener">
-            <span class="label-extra">Read </span>Disclaimer
-          </a>
+          <a class="tab nav-disclaimer" href="../disclaimer.html" target="_self" rel="noopener"><span class="label-extra">Read </span>Disclaimer</a>
         </nav>
         <div class="subtitle">Tap the correct acupuncture point to advance</div>
       </div>
@@ -167,13 +115,11 @@ filename: acu
       </div>
 
       <div id="grid" class="game-grid">
-        <!-- Game card (full width) -->
         <section class="echo-card" id="gameCard">
           <div id="topBanner" class="echo-topbanner" hidden></div>
 
           <div class="echo-stage">
             <div id="wrap" class="echo-image-wrap">
-              <!-- NEW: video element for learning clips -->
               <video id="vid" class="echo-image" playsinline controls preload="metadata" style="display:none"></video>
               <img id="img" class="echo-image" src="" alt="Acupuncture image" />
               <div id="overlay" class="echo-overlay"></div>
@@ -182,6 +128,9 @@ filename: acu
                 <span>Hint</span>
                 <button id="hintBtn" type="button" title="Toggle visual hint">Show</button>
               </div>
+
+              <!-- DEV live coords pill -->
+              <div id="devPill" class="dev-pill" hidden>DEV — 0.0, 0.0</div>
 
               <div id="flash" class="echo-flash" aria-hidden="true"></div>
               <div id="signal" class="echo-signal" aria-hidden="true"></div>
@@ -195,11 +144,11 @@ filename: acu
             <div class="echo-controls">
               <button id="skipBtn" class="echo-link" title="Skip">Skip</button>
               <button id="restartBtn" class="echo-link" title="Restart">Restart</button>
+              <!-- Dev button injected here when ?dev -->
             </div>
           </div>
         </section>
 
-        <!-- Floating right drawer -->
         <aside id="researchCol" class="research-col" hidden></aside>
       </div>
     </div>
@@ -237,10 +186,9 @@ filename: acu
         ref:{ title:"Analgesic effects of LI4 acupressure",
               href:"https://pubmed.ncbi.nlm.nih.gov/?term=LI4+acupressure+analgesia",
               blurb:"Evidence base exploring LI4 stimulation for pain modulation and peri-procedural analgesia." },
-        /* add your clip here */
-        video:"../acu/videos/p61.mov"
+        video:"../acu/videos/LI4.mov"
       },
-      { image:"../acu/images/p61.jpg",
+      { image:"../acu/images/p6.png",
         label:"P6 (Neiguan)",
         prompt:"Tap P6 — 2 cun proximal to wrist crease between palmaris longus & flexor carpi radialis.",
         targets:[{x:42,y:43.4}], tol:3.0,
@@ -248,7 +196,7 @@ filename: acu
         ref:{ title:"P6 acustimulation for PONV",
               href:"https://pubmed.ncbi.nlm.nih.gov/19246457/",
               blurb:"Randomized data show P6 stimulation reduces postoperative nausea/vomiting in high-risk patients." },
-        video:"../acu/videos/P61.mov"
+        video:"../acu/videos/P6.mov"
       },
       { image:"../acu/images/p6.png",
         label:"GB20 (Fēngchí)",
@@ -270,24 +218,17 @@ filename: acu
     const topBanner=$('#topBanner'), toast=$('#toast'), flash=$('#flash'), signal=$('#signal');
     const hintPill=$('#hintPill'), hintBtn=$('#hintBtn');
     const researchCol=$('#researchCol');
+    const devPill=$('#devPill');
 
     $('#skipBtn').addEventListener('click', nextQuestion);
     $('#restartBtn').addEventListener('click', restart);
     hintBtn.addEventListener('click', ()=>{ showHint=!showHint; hintBtn.textContent=showHint?'Hide':'Show'; drawHint(); });
 
-    function showToast(msg){
-      toast.textContent=msg; toast.classList.add('echo-show');
-      clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('echo-show'),1500);
-    }
+    function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('echo-show'),1500); }
     function setBanner(t='',c=''){ topBanner.textContent=t; topBanner.hidden=!t; topBanner.style.color=c||''; }
-    function updateMeta(){
-      scorePill.textContent=`Score: ${score}`;
-      qPill.textContent=`${idx+1} / ${order.length}`;
-      const pct=(idx/order.length)*100; bar.style.inset=`0 ${100-pct}% 0 0`;
-    }
+    function updateMeta(){ scorePill.textContent=`Score: ${score}`; qPill.textContent=`${idx+1} / ${order.length}`; const pct=(idx/order.length)*100; bar.style.inset=`0 ${100-pct}% 0 0`; }
 
     function setAspectFromMedia(){
-      // prefer video dimensions if visible
       if(vid && vid.style.display!=='none' && vid.videoWidth && vid.videoHeight){
         wrap.style.setProperty('--echo-ar', `${vid.videoWidth} / ${vid.videoHeight}`);
       } else if (img.naturalWidth && img.naturalHeight){
@@ -307,91 +248,53 @@ filename: acu
 
     function flashFeedback(ok){
       flash.style.setProperty('--echo-flash', ok?'rgba(34,197,94,.28)':'rgba(248,113,113,.28)');
-      flash.classList.add('show');
-      signal.textContent=ok?'✔':'✖';
-      signal.classList.toggle('ok',ok);
-      signal.classList.toggle('no',!ok);
-      signal.classList.add('show');
+      flash.classList.add('show'); signal.textContent=ok?'✔':'✖';
+      signal.classList.toggle('ok',ok); signal.classList.toggle('no',!ok); signal.classList.add('show');
       try{ navigator.vibrate?.(ok?35:[25,55,25]); }catch{}
       setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); },600);
     }
 
-    function restart(){
-      order=shuffle([...Array(ACU_QUESTIONS.length).keys()]);
-      idx=0; score=0; fixedMarker=null; updateMeta();
-      setBanner('Tap the requested point','#93c5fd');
-      stopVideo();
-      hideResearch();
-      loadQuestion();
-    }
+    function restart(){ order=shuffle([...Array(ACU_QUESTIONS.length).keys()]); idx=0; score=0; fixedMarker=null; updateMeta();
+      setBanner('Tap the requested point','#93c5fd'); stopVideo(); hideResearch(); loadQuestion(); }
 
-    function nextQuestion(){
-      stopVideo();
-      hideResearch();
+    function nextQuestion(){ stopVideo(); hideResearch();
       if(idx<order.length-1){ idx++; updateMeta(); fixedMarker=null; loadQuestion(); }
-      else {
-        overlay.innerHTML='';
-        const d=document.createElement('div');
-        d.style.padding='20px';
+      else { overlay.innerHTML=''; const d=document.createElement('div'); d.style.padding='20px';
         d.innerHTML=`<h2 style="margin:.2rem 0 .6rem;color:#e6edf9">Nice work! 🎉</h2>
           <p style="color:#cbd5e1">You scored <strong>${score}</strong> / ${order.length}.</p>
           <button class="echo-btn" type="button">Play again</button>`;
-        d.querySelector('button').addEventListener('click', restart);
-        overlay.appendChild(d);
-        showToast('Round complete');
-      }
-    }
+        d.querySelector('button').addEventListener('click', restart); overlay.appendChild(d); showToast('Round complete'); } }
 
     function loadQuestion(){
-      overlay.innerHTML=''; fixedMarker=null;
-      showHint=false; hintBtn.textContent='Show';
-      const q=ACU_QUESTIONS[order[idx]];
-
-      // ensure we are on image mode
-      stopVideo();
-
+      overlay.innerHTML=''; fixedMarker=null; showHint=false; hintBtn.textContent='Show';
+      const q=ACU_QUESTIONS[order[idx]]; stopVideo();
       img.onload=()=>{ setAspectFromMedia(); drawHint(); };
       img.onerror=()=>showToast('⚠️ Image failed to load');
       img.src=q.image; img.alt=q.label||'Acupuncture image';
-
       setAspectFromMedia(); updateMeta();
       setBanner(q.prompt||('Find '+(q.label||'the point')),'#e2e8f0');
       hintPill.hidden=!q.hint && (!q.targets || !q.targets.length);
-
-      wrap.onclick=onGuess;
-      window.onresize=drawHint;
+      wrap.onclick=onGuess; window.onresize=drawHint;
     }
 
     function onGuess(e){
       const q=ACU_QUESTIONS[order[idx]];
       const r=wrap.getBoundingClientRect(), box=mediaBox();
-      const px=clamp(e.clientX-r.left,0,r.width);
-      const py=clamp(e.clientY-r.top ,0,r.height);
-      const xPct=clamp(((px-box.x)/box.w)*100,0,100);
-      const yPct=clamp(((py-box.y)/box.h)*100,0,100);
-
+      const px=clamp(e.clientX-r.left,0,r.width), py=clamp(e.clientY-r.top,0,r.height);
+      const xPct=clamp(((px-box.x)/box.w)*100,0,100), yPct=clamp(((py-box.y)/box.h)*100,0,100);
       const tolPx=(q.tol??3)/100*Math.min(box.w,box.h);
-      const nearest=(q.targets||[]).reduce((best,t)=>{
-        const dx=(xPct-t.x)*box.w/100, dy=(yPct-t.y)*box.h/100;
-        const d=Math.hypot(dx,dy); return(!best||d<best.d)?{t,d}:best;
-      },null);
+      const nearest=(q.targets||[]).reduce((best,t)=>{ const dx=(xPct-t.x)*box.w/100, dy=(yPct-t.y)*box.h/100;
+        const d=Math.hypot(dx,dy); return(!best||d<best.d)?{t,d}:best; },null);
       const ok=nearest && nearest.d<=tolPx;
 
-      const dot=document.createElement('div');
-      dot.className='acu-dot '+(ok?'good':'bad');
-      dot.style.left=px+'px'; dot.style.top=py+'px';
-      overlay.appendChild(dot); setTimeout(()=>dot.remove(),900);
+      const dot=document.createElement('div'); dot.className='acu-dot '+(ok?'good':'bad');
+      dot.style.left=px+'px'; dot.style.top=py+'px'; overlay.appendChild(dot); setTimeout(()=>dot.remove(),900);
 
       flashFeedback(ok);
 
-      if(ok){
-        score++; scorePill.textContent=`Score: ${score}`;
-        setBanner('✅ Correct — '+(q.label||'good pick'),'#34d399');
-        fixedMarker=nearest.t; placeMarker();
-        showLearnDrawer(q, ()=>{ setBanner(''); nextQuestion(); });
-      } else {
-        setBanner('❌ Not quite — try again or toggle a hint','#f87171');
-      }
+      if(ok){ score++; scorePill.textContent=`Score: ${score}`; setBanner('✅ Correct — '+(q.label||'good pick'),'#34d399');
+        fixedMarker=nearest.t; placeMarker(); showLearnDrawer(q, ()=>{ setBanner(''); nextQuestion(); });
+      } else { setBanner('❌ Not quite — try again or toggle a hint','#f87171'); }
     }
 
     function drawHint(){
@@ -402,10 +305,8 @@ filename: acu
         const tolPx=(q.tol??3)/100*Math.min(box.w,box.h);
         q.targets.forEach(t=>{
           const rx=box.x+(t.x/100)*box.w, ry=box.y+(t.y/100)*box.h;
-          const ring=document.createElement('div');
-          ring.className='acu-ring';
-          ring.style.left=rx+'px'; ring.style.top=ry+'px';
-          ring.style.width=ring.style.height=(tolPx*2.2)+'px';
+          const ring=document.createElement('div'); ring.className='acu-ring';
+          ring.style.left=rx+'px'; ring.style.top=ry+'px'; ring.style.width=ring.style.height=(tolPx*2.2)+'px';
           overlay.appendChild(ring);
         });
         if(q.hint){ const p=document.createElement('p'); p.className='hint-text'; p.textContent=q.hint; overlay.appendChild(p); }
@@ -417,80 +318,39 @@ filename: acu
       const dEl=document.getElementById('acuMarkerDot');
       const rEl=document.getElementById('acuMarkerRing');
       if(!fixedMarker){ dEl?.remove(); rEl?.remove(); return; }
-      const box=mediaBox();
-      const rx=box.x+(fixedMarker.x/100)*box.w;
-      const ry=box.y+(fixedMarker.y/100)*box.h;
+      const box=mediaBox(); const rx=box.x+(fixedMarker.x/100)*box.w; const ry=box.y+(fixedMarker.y/100)*box.h;
       let d=dEl, r=rEl;
       if(!d){ d=document.createElement('div'); d.id='acuMarkerDot'; d.className='acu-lock-dot'; overlay.appendChild(d); }
       if(!r){ r=document.createElement('div'); r.id='acuMarkerRing'; r.className='acu-lock-ring'; overlay.appendChild(r); }
-      d.style.left=rx+'px'; d.style.top=ry+'px';
-      r.style.left=rx+'px'; r.style.top=ry+'px';
+      d.style.left=rx+'px'; d.style.top=ry+'px'; r.style.left=rx+'px'; r.style.top=ry+'px';
     }
 
-    /* ===== Video helpers ===== */
-    function stopVideo(){
-      try{ vid.pause(); }catch{}
-      vid.removeAttribute('src');
-      while(vid.firstChild) vid.removeChild(vid.firstChild);
-      vid.style.display='none';
-      img.style.display='';
-      setAspectFromMedia();
-      hintPill.hidden = false;
-    }
+    /* Video helpers */
+    function stopVideo(){ try{ vid.pause(); }catch{} vid.removeAttribute('src'); while(vid.firstChild) vid.removeChild(vid.firstChild);
+      vid.style.display='none'; img.style.display=''; setAspectFromMedia(); hintPill.hidden=false; }
     function playLearningVideo(q){
-      if(!q) return;
-      hintPill.hidden = true;
-
-      // set source(s)
-      while(vid.firstChild) vid.removeChild(vid.firstChild);
-      if (Array.isArray(q.sources) && q.sources.length){
-        q.sources.forEach(s => {
-          const src = document.createElement('source');
-          src.src = s.src; if (s.type) src.type = s.type;
-          vid.appendChild(src);
-        });
-      } else if (q.video){
-        vid.src = q.video;
-      } else {
-        showToast('No video available'); return;
-      }
-
-      img.style.display='none';
-      vid.style.display='';
-
-      vid.onloadedmetadata = ()=>{
-        setAspectFromMedia();
-        const tryPlay = ()=> vid.play().catch(()=>{}); // show controls if autoplay blocked
-        tryPlay();
-      };
-      vid.onended = ()=>{
-        showToast('Video finished');
-        setBanner('🎬 Video complete — click Next question to continue', '#93c5fd');
-      };
+      if(!q) return; hintPill.hidden=true; while(vid.firstChild) vid.removeChild(vid.firstChild);
+      if (Array.isArray(q.sources) && q.sources.length){ q.sources.forEach(s=>{ const src=document.createElement('source'); src.src=s.src; if(s.type) src.type=s.type; vid.appendChild(src); }); }
+      else if (q.video){ vid.src=q.video; } else { showToast('No video available'); return; }
+      img.style.display='none'; vid.style.display=''; vid.onloadedmetadata=()=>{ setAspectFromMedia(); vid.play().catch(()=>{}); };
+      vid.onended=()=>{ showToast('Video finished'); setBanner('🎬 Video complete — click Next question to continue','#93c5fd'); };
       vid.load();
     }
 
-    /* ===== Right drawer: research + learning video ===== */
+    /* Right drawer */
     function hideResearch(){ researchCol.innerHTML=''; researchCol.hidden=true; }
     function showLearnDrawer(q, onNext){
       researchCol.hidden=false;
       const top = document.getElementById('gameCard').getBoundingClientRect().top + window.scrollY + 12;
       researchCol.style.top = top + 'px';
-
       researchCol.innerHTML = '';
 
-      // Research card
       if (q.ref && (q.ref.title || q.ref.href || q.ref.blurb)){
-        const card=document.createElement('div');
-        card.className='rd-card open';
+        const card=document.createElement('div'); card.className='rd-card open';
         card.innerHTML = `
-          <div class="rd-head rd-toggle">
-            <div class="rd-left">
-              <span class="rd-pill">Research</span>
-              <div class="rd-title">${escapeHTML(q.ref.title || 'Related article')}</div>
-            </div>
-            <div class="rd-chevron">▾</div>
-          </div>
+          <div class="rd-head rd-toggle"><div class="rd-left">
+              <span class="rd-pill">Research</span><div class="rd-title">${escapeHTML(q.ref.title || 'Related article')}</div>
+            </div><div class="rd-chevron">▾</div></div>
           <div class="rd-body">${escapeHTML(q.ref.blurb || 'Explore clinical research for this point.')}</div>
           <div class="rd-actions">
             ${q.ref.href ? `<a class="btn btn-link" href="${q.ref.href}" target="_blank" rel="noopener">Open article <span class="ext">↗</span></a>` : ''}
@@ -499,18 +359,12 @@ filename: acu
         researchCol.appendChild(card);
       }
 
-      // Learning video card
       if (q.video || (Array.isArray(q.sources) && q.sources.length)){
-        const vcard=document.createElement('div');
-        vcard.className='rd-card open';
+        const vcard=document.createElement('div'); vcard.className='rd-card open';
         vcard.innerHTML = `
-          <div class="rd-head rd-toggle">
-            <div class="rd-left">
-              <span class="rd-pill">Learn</span>
-              <div class="rd-title">Watch a quick ${escapeHTML(q.label||'point')} video</div>
-            </div>
-            <div class="rd-chevron">▾</div>
-          </div>
+          <div class="rd-head rd-toggle"><div class="rd-left">
+              <span class="rd-pill">Learn</span><div class="rd-title">Watch a quick ${escapeHTML(q.label||'point')} video</div>
+            </div><div class="rd-chevron">▾</div></div>
           <div class="rd-body">Play a short clip demonstrating landmarks and technique.</div>
           <div class="rd-actions">
             <button class="btn btn-primary rd-watch" type="button">Watch video</button>
@@ -519,18 +373,66 @@ filename: acu
         researchCol.appendChild(vcard);
       }
 
-      // Toggle behavior + actions
       researchCol.querySelectorAll('.rd-toggle').forEach(head=>{
         head.addEventListener('click', ()=>{
-          const card = head.parentElement;
+          const card=head.parentElement;
           card.classList.toggle('open');
           card.querySelector('.rd-chevron').textContent = card.classList.contains('open') ? '▾' : '▸';
         });
       });
       researchCol.querySelectorAll('.rd-next').forEach(b=>b.addEventListener('click', ()=>{ hideResearch(); onNext?.(); }));
-      const w = researchCol.querySelector('.rd-watch');
-      if (w) w.addEventListener('click', ()=> playLearningVideo(q));
+      const w = researchCol.querySelector('.rd-watch'); if (w) w.addEventListener('click', ()=> playLearningVideo(q));
     }
+
+    /* ===== DEV coordinate picker ===== */
+    (function attachDevPicker(){
+      const DEV = new URLSearchParams(location.search).has('dev');
+      if (!DEV) return;
+
+      // inject button
+      const controls = document.querySelector('.echo-controls');
+      const devBtn = document.createElement('button');
+      devBtn.id='acu-devBtn'; devBtn.className='echo-link'; devBtn.textContent='Pick coords (D)';
+      controls.appendChild(devBtn);
+
+      let devMode = false;
+      function toggleDevMode(){
+        devMode = !devMode;
+        devBtn.textContent = devMode ? 'Picking… (D to exit)' : 'Pick coords (D)';
+        devPill.hidden = !devMode;
+        showToast(devMode ? 'Tap image/video to copy % coords' : 'Picker off');
+        wrap.onclick = devMode ? devPick : onGuess;
+        wrap.onmousemove = devMode ? devHover : null;
+        if (devMode && vid && vid.style.display!=='none'){ try{vid.pause();}catch{} }
+      }
+
+      function devHover(e){
+        const r=wrap.getBoundingClientRect(), box=mediaBox();
+        const px=clamp(e.clientX-r.left,0,r.width), py=clamp(e.clientY-r.top,0,r.height);
+        const xPct=clamp(((px-box.x)/box.w)*100,0,100), yPct=clamp(((py-box.y)/box.h)*100,0,100);
+        const x=(Math.round(xPct*10)/10).toFixed(1), y=(Math.round(yPct*10)/10).toFixed(1);
+        devPill.textContent = `DEV — ${x}, ${y}`;
+      }
+
+      function devPick(e){
+        const r=wrap.getBoundingClientRect(), box=mediaBox();
+        const px=e.clientX-r.left, py=e.clientY-r.top;
+        const xPct=clamp(((px-box.x)/box.w)*100,0,100), yPct=clamp(((py-box.y)/box.h)*100,0,100);
+        const x=Math.round(xPct*10)/10, y=Math.round(yPct*10)/10;
+        const snippet = `target: { x: ${x}, y: ${y} }`;
+
+        const dot=document.createElement('div'); dot.style.cssText=
+          `position:absolute;left:${px}px;top:${py}px;width:12px;height:12px;border-radius:999px;`+
+          `background:#5eead4;box-shadow:0 0 12px rgba(94,234,212,.8);transform:translate(-50%,-50%);pointer-events:none`;
+        overlay.appendChild(dot); setTimeout(()=>dot.remove(),900);
+
+        navigator.clipboard?.writeText(snippet).catch(()=>{});
+        showToast('Copied: ' + snippet);
+      }
+
+      devBtn.addEventListener('click', toggleDevMode);
+      window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='d') toggleDevMode(); });
+    })();
 
     // init
     restart();
