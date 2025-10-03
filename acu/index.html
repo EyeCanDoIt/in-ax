@@ -96,6 +96,7 @@ filename: acu
       box-shadow:0 20px 50px rgba(0,0,0,.45);
       color:#e6edf9;
       overflow:hidden;
+      margin-bottom:12px;
     }
     .rd-head{
       display:flex; align-items:center; justify-content:space-between;
@@ -172,6 +173,8 @@ filename: acu
 
           <div class="echo-stage">
             <div id="wrap" class="echo-image-wrap">
+              <!-- NEW: video element for learning clips -->
+              <video id="vid" class="echo-image" playsinline controls preload="metadata" style="display:none"></video>
               <img id="img" class="echo-image" src="" alt="Acupuncture image" />
               <div id="overlay" class="echo-overlay"></div>
 
@@ -233,29 +236,36 @@ filename: acu
         hint:"On the dorsum between 1st–2nd metacarpals; closer to 2nd metacarpal radial side.",
         ref:{ title:"Analgesic effects of LI4 acupressure",
               href:"https://pubmed.ncbi.nlm.nih.gov/?term=LI4+acupressure+analgesia",
-              blurb:"Evidence base exploring LI4 stimulation for pain modulation and peri-procedural analgesia." } },
+              blurb:"Evidence base exploring LI4 stimulation for pain modulation and peri-procedural analgesia." },
+        /* add your clip here */
+        video:"../acu/videos/LI4.mov"
+      },
       { image:"../acu/images/p6.png",
-        label:"P6",
-        prompt:"Tap ST36 — ~3 cun below ST35, one finger lateral to tibial crest.",
-        targets:[{x:42,y:43.4},{x:52.8,y:66.8}], tol:3.0,
-        hint:"Find tibial tuberosity, drop ~3 cun, slide lateral off the crest.",
-        ref:{ title:"P6 acustimulation effectively decreases postoperative nausea and vomiting in high-risk patients",
+        label:"P6 (Neiguan)",
+        prompt:"Tap P6 — 2 cun proximal to wrist crease between palmaris longus & flexor carpi radialis.",
+        targets:[{x:42,y:43.4}], tol:3.0,
+        hint:"Locate the two central forearm tendons; point lies between them.",
+        ref:{ title:"P6 acustimulation for PONV",
               href:"https://pubmed.ncbi.nlm.nih.gov/19246457/",
-              blurb:"P6 acustimulation effectively decreases postoperative nausea and vomiting in high-risk patients" } },
+              blurb:"Randomized data show P6 stimulation reduces postoperative nausea/vomiting in high-risk patients." },
+        video:"../acu/videos/P6.mov"
+      },
       { image:"../acu/images/p6.png",
         label:"GB20 (Fēngchí)",
         prompt:"Tap GB20 — depression between SCM & trapezius, level with EOP.",
         targets:[{x:41.5,y:34},{x:58.5,y:34}], tol:3.0,
         hint:"Either side acceptable.",
-        ref:{ title:"GB20 stimulation for headache and neck tension",
+        ref:{ title:"GB20 stimulation for headache/neck tension",
               href:"https://pubmed.ncbi.nlm.nih.gov/?term=GB20+acupressure+headache",
-              blurb:"Clinical studies on GB20 in tension-type headache and cervical myofascial pain." } }
+              blurb:"Clinical studies on GB20 in tension-type headache and cervical myofascial pain." },
+        video:"../acu/videos/GB20.mov"
+      }
     ];
 
     let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
     let idx=0, score=0, showHint=false, fixedMarker=null;
 
-    const wrap=$('#wrap'), img=$('#img'), overlay=$('#overlay');
+    const wrap=$('#wrap'), img=$('#img'), vid=$('#vid'), overlay=$('#overlay');
     const scorePill=$('#scorePill'), qPill=$('#qPill'), bar=$('#bar');
     const topBanner=$('#topBanner'), toast=$('#toast'), flash=$('#flash'), signal=$('#signal');
     const hintPill=$('#hintPill'), hintBtn=$('#hintBtn');
@@ -276,29 +286,47 @@ filename: acu
       const pct=(idx/order.length)*100; bar.style.inset=`0 ${100-pct}% 0 0`;
     }
 
-    function setAspectFromImg(){
-      if(img.naturalWidth && img.naturalHeight){
+    function setAspectFromMedia(){
+      // prefer video dimensions if visible
+      if(vid && vid.style.display!=='none' && vid.videoWidth && vid.videoHeight){
+        wrap.style.setProperty('--echo-ar', `${vid.videoWidth} / ${vid.videoHeight}`);
+      } else if (img.naturalWidth && img.naturalHeight){
         wrap.style.setProperty('--echo-ar', `${img.naturalWidth} / ${img.naturalHeight}`);
       }
     }
     function mediaBox(){
       const r=wrap.getBoundingClientRect();
-      const nw=img.naturalWidth, nh=img.naturalHeight;
+      const useVid = vid && vid.style.display!=='none' && vid.videoWidth && vid.videoHeight;
+      const nw = useVid ? vid.videoWidth : img.naturalWidth;
+      const nh = useVid ? vid.videoHeight : img.naturalHeight;
       if(!nw || !nh) return {x:0,y:0,w:r.width,h:r.height};
       const ar=nw/nh, wr=r.width/r.height;
       if(wr>ar){ const h=r.height,w=h*ar,x=(r.width-w)/2; return {x,y:0,w,h}; }
       const w=r.width,h=w/ar,y=(r.height-h)/2; return {x:0,y,w,h};
     }
 
+    function flashFeedback(ok){
+      flash.style.setProperty('--echo-flash', ok?'rgba(34,197,94,.28)':'rgba(248,113,113,.28)');
+      flash.classList.add('show');
+      signal.textContent=ok?'✔':'✖';
+      signal.classList.toggle('ok',ok);
+      signal.classList.toggle('no',!ok);
+      signal.classList.add('show');
+      try{ navigator.vibrate?.(ok?35:[25,55,25]); }catch{}
+      setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); },600);
+    }
+
     function restart(){
       order=shuffle([...Array(ACU_QUESTIONS.length).keys()]);
       idx=0; score=0; fixedMarker=null; updateMeta();
       setBanner('Tap the requested point','#93c5fd');
+      stopVideo();
       hideResearch();
       loadQuestion();
     }
 
     function nextQuestion(){
+      stopVideo();
       hideResearch();
       if(idx<order.length-1){ idx++; updateMeta(); fixedMarker=null; loadQuestion(); }
       else {
@@ -318,11 +346,15 @@ filename: acu
       overlay.innerHTML=''; fixedMarker=null;
       showHint=false; hintBtn.textContent='Show';
       const q=ACU_QUESTIONS[order[idx]];
-      img.onload=()=>{ setAspectFromImg(); drawHint(); };
+
+      // ensure we are on image mode
+      stopVideo();
+
+      img.onload=()=>{ setAspectFromMedia(); drawHint(); };
       img.onerror=()=>showToast('⚠️ Image failed to load');
       img.src=q.image; img.alt=q.label||'Acupuncture image';
-      setAspectFromImg(); updateMeta();
 
+      setAspectFromMedia(); updateMeta();
       setBanner(q.prompt||('Find '+(q.label||'the point')),'#e2e8f0');
       hintPill.hidden=!q.hint && (!q.targets || !q.targets.length);
 
@@ -350,20 +382,13 @@ filename: acu
       dot.style.left=px+'px'; dot.style.top=py+'px';
       overlay.appendChild(dot); setTimeout(()=>dot.remove(),900);
 
-      flash.style.setProperty('--echo-flash', ok?'rgba(34,197,94,.28)':'rgba(248,113,113,.28)');
-      flash.classList.add('show');
-      signal.textContent=ok?'✔':'✖';
-      signal.classList.toggle('ok',ok);
-      signal.classList.toggle('no',!ok);
-      signal.classList.add('show');
-      setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); },600);
+      flashFeedback(ok);
 
       if(ok){
         score++; scorePill.textContent=`Score: ${score}`;
         setBanner('✅ Correct — '+(q.label||'good pick'),'#34d399');
         fixedMarker=nearest.t; placeMarker();
-        if(q.ref && q.ref.href){ showResearch(q.ref, ()=>{ setBanner(''); nextQuestion(); }); }
-        else { setTimeout(()=>{ setBanner(''); nextQuestion(); },800); }
+        showLearnDrawer(q, ()=>{ setBanner(''); nextQuestion(); });
       } else {
         setBanner('❌ Not quite — try again or toggle a hint','#f87171');
       }
@@ -402,38 +427,109 @@ filename: acu
       r.style.left=rx+'px'; r.style.top=ry+'px';
     }
 
-    /* ===== Research drawer (fixed at right; doesn’t change game width) ===== */
-    function hideResearch(){ researchCol.innerHTML=''; researchCol.hidden=true; }
-    function showResearch(ref, onNext){
-      researchCol.hidden=false;
+    /* ===== Video helpers ===== */
+    function stopVideo(){
+      try{ vid.pause(); }catch{}
+      vid.removeAttribute('src');
+      while(vid.firstChild) vid.removeChild(vid.firstChild);
+      vid.style.display='none';
+      img.style.display='';
+      setAspectFromMedia();
+      hintPill.hidden = false;
+    }
+    function playLearningVideo(q){
+      if(!q) return;
+      hintPill.hidden = true;
 
-      // align the drawer vertically with the game card top
-      const top = document.getElementById('gameCard').getBoundingClientRect().top + 12;
+      // set source(s)
+      while(vid.firstChild) vid.removeChild(vid.firstChild);
+      if (Array.isArray(q.sources) && q.sources.length){
+        q.sources.forEach(s => {
+          const src = document.createElement('source');
+          src.src = s.src; if (s.type) src.type = s.type;
+          vid.appendChild(src);
+        });
+      } else if (q.video){
+        vid.src = q.video;
+      } else {
+        showToast('No video available'); return;
+      }
+
+      img.style.display='none';
+      vid.style.display='';
+
+      vid.onloadedmetadata = ()=>{
+        setAspectFromMedia();
+        const tryPlay = ()=> vid.play().catch(()=>{}); // show controls if autoplay blocked
+        tryPlay();
+      };
+      vid.onended = ()=>{
+        showToast('Video finished');
+        setBanner('🎬 Video complete — click Next question to continue', '#93c5fd');
+      };
+      vid.load();
+    }
+
+    /* ===== Right drawer: research + learning video ===== */
+    function hideResearch(){ researchCol.innerHTML=''; researchCol.hidden=true; }
+    function showLearnDrawer(q, onNext){
+      researchCol.hidden=false;
+      const top = document.getElementById('gameCard').getBoundingClientRect().top + window.scrollY + 12;
       researchCol.style.top = top + 'px';
 
-      const card=document.createElement('div');
-      card.className='rd-card open';
-      card.innerHTML = `
-        <div class="rd-head" id="rdToggle">
-          <div class="rd-left">
-            <span class="rd-pill">Research</span>
-            <div class="rd-title">${escapeHTML(ref.title || 'Related article')}</div>
-          </div>
-          <div class="rd-chevron">▾</div>
-        </div>
-        <div class="rd-body">${escapeHTML(ref.blurb || 'Explore clinical research for this point.')}</div>
-        <div class="rd-actions">
-          <a class="btn btn-link" href="${ref.href}" target="_blank" rel="noopener">Open article <span class="ext">↗</span></a>
-          <button class="btn btn-primary" type="button" id="rdNext">Next question</button>
-        </div>`;
-      researchCol.appendChild(card);
+      researchCol.innerHTML = '';
 
-      const toggle=card.querySelector('#rdToggle');
-      toggle.addEventListener('click', ()=>{
-        card.classList.toggle('open');
-        card.querySelector('.rd-chevron').textContent = card.classList.contains('open') ? '▾' : '▸';
+      // Research card
+      if (q.ref && (q.ref.title || q.ref.href || q.ref.blurb)){
+        const card=document.createElement('div');
+        card.className='rd-card open';
+        card.innerHTML = `
+          <div class="rd-head rd-toggle">
+            <div class="rd-left">
+              <span class="rd-pill">Research</span>
+              <div class="rd-title">${escapeHTML(q.ref.title || 'Related article')}</div>
+            </div>
+            <div class="rd-chevron">▾</div>
+          </div>
+          <div class="rd-body">${escapeHTML(q.ref.blurb || 'Explore clinical research for this point.')}</div>
+          <div class="rd-actions">
+            ${q.ref.href ? `<a class="btn btn-link" href="${q.ref.href}" target="_blank" rel="noopener">Open article <span class="ext">↗</span></a>` : ''}
+            <button class="btn btn-primary rd-next" type="button">Next question</button>
+          </div>`;
+        researchCol.appendChild(card);
+      }
+
+      // Learning video card
+      if (q.video || (Array.isArray(q.sources) && q.sources.length)){
+        const vcard=document.createElement('div');
+        vcard.className='rd-card open';
+        vcard.innerHTML = `
+          <div class="rd-head rd-toggle">
+            <div class="rd-left">
+              <span class="rd-pill">Learn</span>
+              <div class="rd-title">Watch a quick ${escapeHTML(q.label||'point')} video</div>
+            </div>
+            <div class="rd-chevron">▾</div>
+          </div>
+          <div class="rd-body">Play a short clip demonstrating landmarks and technique.</div>
+          <div class="rd-actions">
+            <button class="btn btn-primary rd-watch" type="button">Watch video</button>
+            <button class="btn rd-next" type="button">Next question</button>
+          </div>`;
+        researchCol.appendChild(vcard);
+      }
+
+      // Toggle behavior + actions
+      researchCol.querySelectorAll('.rd-toggle').forEach(head=>{
+        head.addEventListener('click', ()=>{
+          const card = head.parentElement;
+          card.classList.toggle('open');
+          card.querySelector('.rd-chevron').textContent = card.classList.contains('open') ? '▾' : '▸';
+        });
       });
-      card.querySelector('#rdNext').addEventListener('click', ()=>{ hideResearch(); onNext?.(); });
+      researchCol.querySelectorAll('.rd-next').forEach(b=>b.addEventListener('click', ()=>{ hideResearch(); onNext?.(); }));
+      const w = researchCol.querySelector('.rd-watch');
+      if (w) w.addEventListener('click', ()=> playLearningVideo(q));
     }
 
     // init
