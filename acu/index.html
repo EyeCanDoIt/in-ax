@@ -106,7 +106,7 @@ filename: acu
       <div class="echo-header">
         <div class="echo-title-wrap">
           <h1 class="echo-title">Acupuncture — Point ID</h1>
-          <span class="echo-sub">Identify the requested point on the image</span>
+        <span class="echo-sub">Identify the requested point on the image</span>
         </div>
         <div class="echo-meta">
           <span id="scorePill" class="echo-pill">Score: 0</span>
@@ -177,13 +177,14 @@ filename: acu
     const shuffle=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b};
     const escapeHTML=s=>String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
+    /* ===== DATA ===== */
     const ACU_QUESTIONS = [
       { image:"../acu/images/p6.png",
         label:"P6 (Neiguan)",
         prompt:"Tap P6 — 2 cm proximal to wrist crease between palmaris longus & flexor carpi radialis.",
-        targets:[{x:42,y:43.4}], tol:3.2,
-        hint:"On the dorsum between 1st–2nd metacarpals; closer to 2nd metacarpal radial side.",
-        ref:{ title:"Analgesic effects of LI4 acupressure",
+        targets:[{x:42,y:43.4}], tol:3.2, tries:3,
+        hint:"Locate the two central forearm tendons; point lies between them.",
+        ref:{ title:"P6 acustimulation for PONV",
               href:"https://pubmed.ncbi.nlm.nih.gov/19246457/",
               blurb:"Randomized data show P6 stimulation reduces postoperative nausea/vomiting in high-risk patients." },
         video:"../acu/videos/p61.mov"
@@ -191,7 +192,7 @@ filename: acu
       { image:"../acu/images/p61.jpg",
         label:"P6 (Neiguan)",
         prompt:"Tap P6 — 2 cm proximal to wrist crease between palmaris longus & flexor carpi radialis.",
-        targets:[{x:25,y:59.2}], tol:3.0,
+        targets:[{x:25,y:59.2}], tol:3.0, tries:3,
         hint:"Locate the two central forearm tendons; point lies between them.",
         ref:{ title:"P6 acustimulation for PONV",
               href:"https://pubmed.ncbi.nlm.nih.gov/19246457/",
@@ -201,18 +202,22 @@ filename: acu
       { image:"../acu/images/p6.png",
         label:"GB20 (Fēngchí)",
         prompt:"Tap GB20 — depression between SCM & trapezius, level with EOP.",
-        targets:[{x:41.5,y:34},{x:58.5,y:34}], tol:3.0,
+        targets:[{x:41.5,y:34},{x:58.5,y:34}], tol:3.0, tries:3,
         hint:"Either side acceptable.",
         ref:{ title:"GB20 stimulation for headache/neck tension",
-              href:"https://pubmed.ncbi.nlm.nih.gov/19246457/,
-              blurb:"Randomized data show P6 stimulation reduces postoperative nausea/vomiting in high-risk patients." },
+              href:"https://pubmed.ncbi.nlm.nih.gov/?term=GB20+acupressure+headache",
+              blurb:"Clinical studies on GB20 in tension-type headache and cervical myofascial pain." },
         video:"../acu/videos/p61.mov"
       }
     ];
 
+    /* ===== STATE ===== */
+    const DEFAULT_TRIES = 3;
     let order = shuffle([...Array(ACU_QUESTIONS.length).keys()]);
-    let idx=0, score=0, showHint=false, fixedMarker=null;
+    let idx=0, score=0, showHint=false, fixedMarker=null, triesLeft=DEFAULT_TRIES;
+    let isVideoPlaying = false;
 
+    /* ===== EL ===== */
     const wrap=$('#wrap'), img=$('#img'), vid=$('#vid'), overlay=$('#overlay');
     const scorePill=$('#scorePill'), qPill=$('#qPill'), bar=$('#bar');
     const topBanner=$('#topBanner'), toast=$('#toast'), flash=$('#flash'), signal=$('#signal');
@@ -224,6 +229,7 @@ filename: acu
     $('#restartBtn').addEventListener('click', restart);
     hintBtn.addEventListener('click', ()=>{ showHint=!showHint; hintBtn.textContent=showHint?'Hide':'Show'; drawHint(); });
 
+    /* ===== UI Helpers ===== */
     function showToast(msg){ toast.textContent=msg; toast.classList.add('echo-show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('echo-show'),1500); }
     function setBanner(t='',c=''){ topBanner.textContent=t; topBanner.hidden=!t; topBanner.style.color=c||''; }
     function updateMeta(){ scorePill.textContent=`Score: ${score}`; qPill.textContent=`${idx+1} / ${order.length}`; const pct=(idx/order.length)*100; bar.style.inset=`0 ${100-pct}% 0 0`; }
@@ -254,30 +260,47 @@ filename: acu
       setTimeout(()=>{ flash.classList.remove('show'); signal.classList.remove('show'); },600);
     }
 
-    function restart(){ order=shuffle([...Array(ACU_QUESTIONS.length).keys()]); idx=0; score=0; fixedMarker=null; updateMeta();
-      setBanner('Tap the requested point','#93c5fd'); stopVideo(); hideResearch(); loadQuestion(); }
+    /* ===== Game flow ===== */
+    function restart(){
+      order=shuffle([...Array(ACU_QUESTIONS.length).keys()]);
+      idx=0; score=0; fixedMarker=null; triesLeft=DEFAULT_TRIES; updateMeta();
+      setBanner('Tap the requested point','#93c5fd'); stopVideo(); hideResearch(); loadQuestion();
+    }
 
-    function nextQuestion(){ stopVideo(); hideResearch();
+    function nextQuestion(){
+      stopVideo(); hideResearch();
       if(idx<order.length-1){ idx++; updateMeta(); fixedMarker=null; loadQuestion(); }
-      else { overlay.innerHTML=''; const d=document.createElement('div'); d.style.padding='20px';
+      else {
+        overlay.innerHTML='';
+        const d=document.createElement('div'); d.style.padding='20px';
         d.innerHTML=`<h2 style="margin:.2rem 0 .6rem;color:#e6edf9">Nice work! 🎉</h2>
           <p style="color:#cbd5e1">You scored <strong>${score}</strong> / ${order.length}.</p>
           <button class="echo-btn" type="button">Play again</button>`;
-        d.querySelector('button').addEventListener('click', restart); overlay.appendChild(d); showToast('Round complete'); } }
+        d.querySelector('button').addEventListener('click', restart);
+        overlay.appendChild(d);
+        showToast('Round complete');
+      }
+    }
 
     function loadQuestion(){
       overlay.innerHTML=''; fixedMarker=null; showHint=false; hintBtn.textContent='Show';
-      const q=ACU_QUESTIONS[order[idx]]; stopVideo();
+      const q=ACU_QUESTIONS[order[idx]];
+      triesLeft = q.tries ?? DEFAULT_TRIES;
+
+      stopVideo();
       img.onload=()=>{ setAspectFromMedia(); drawHint(); };
       img.onerror=()=>showToast('⚠️ Image failed to load');
       img.src=q.image; img.alt=q.label||'Acupuncture image';
       setAspectFromMedia(); updateMeta();
-      setBanner(q.prompt||('Find '+(q.label||'the point')),'#e2e8f0');
+      setBanner((q.prompt||('Find '+(q.label||'the point'))) + ` — ${triesLeft} tries`, '#e2e8f0');
       hintPill.hidden=!q.hint && (!q.targets || !q.targets.length);
+
       wrap.onclick=onGuess; window.onresize=drawHint;
     }
 
     function onGuess(e){
+      if (triesLeft <= 0 || isVideoPlaying) return;
+
       const q=ACU_QUESTIONS[order[idx]];
       const r=wrap.getBoundingClientRect(), box=mediaBox();
       const px=clamp(e.clientX-r.left,0,r.width), py=clamp(e.clientY-r.top,0,r.height);
@@ -292,9 +315,22 @@ filename: acu
 
       flashFeedback(ok);
 
-      if(ok){ score++; scorePill.textContent=`Score: ${score}`; setBanner('✅ Correct — '+(q.label||'good pick'),'#34d399');
-        fixedMarker=nearest.t; placeMarker(); showLearnDrawer(q, ()=>{ setBanner(''); nextQuestion(); });
-      } else { setBanner('❌ Not quite — try again or toggle a hint','#f87171'); }
+      if(ok){
+        score++; scorePill.textContent=`Score: ${score}`;
+        setBanner('✅ Correct — '+(q.label||'good pick'),'#34d399');
+        fixedMarker=nearest.t; placeMarker();
+        showLearnDrawer(q, ()=>{ setBanner(''); nextQuestion(); });
+      } else {
+        triesLeft -= 1;
+        if (triesLeft > 0){
+          setBanner(`❌ Not quite — ${triesLeft} ${triesLeft===1?'try':'tries'} left`, '#f87171');
+        } else {
+          // Out of tries: show hint zone and allow moving on
+          showHint = true; drawHint();
+          setBanner('ℹ️ Out of tries — showing target area', '#93c5fd');
+          showLearnDrawer(q, ()=>{ setBanner(''); nextQuestion(); });
+        }
+      }
     }
 
     function drawHint(){
@@ -317,7 +353,8 @@ filename: acu
     function placeMarker(){
       const dEl=document.getElementById('acuMarkerDot');
       const rEl=document.getElementById('acuMarkerRing');
-      if(!fixedMarker){ dEl?.remove(); rEl?.remove(); return; }
+      // hide marker while video is playing
+      if(isVideoPlaying || !fixedMarker){ dEl?.remove(); rEl?.remove(); return; }
       const box=mediaBox(); const rx=box.x+(fixedMarker.x/100)*box.w; const ry=box.y+(fixedMarker.y/100)*box.h;
       let d=dEl, r=rEl;
       if(!d){ d=document.createElement('div'); d.id='acuMarkerDot'; d.className='acu-lock-dot'; overlay.appendChild(d); }
@@ -325,19 +362,45 @@ filename: acu
       d.style.left=rx+'px'; d.style.top=ry+'px'; r.style.left=rx+'px'; r.style.top=ry+'px';
     }
 
-    /* Video helpers */
-    function stopVideo(){ try{ vid.pause(); }catch{} vid.removeAttribute('src'); while(vid.firstChild) vid.removeChild(vid.firstChild);
-      vid.style.display='none'; img.style.display=''; setAspectFromMedia(); hintPill.hidden=false; }
+    /* ===== Video helpers ===== */
+    function stopVideo(){
+      isVideoPlaying = false;
+      try{ vid.pause(); }catch{}
+      vid.removeAttribute('src');
+      while(vid.firstChild) vid.removeChild(vid.firstChild);
+      vid.style.display='none';
+      img.style.display='';
+      wrap.onclick = onGuess;               // re-enable guessing
+      setAspectFromMedia();
+      hintPill.hidden=false;
+      placeMarker();                        // restore marker if present
+    }
+
     function playLearningVideo(q){
-      if(!q) return; hintPill.hidden=true; while(vid.firstChild) vid.removeChild(vid.firstChild);
-      if (Array.isArray(q.sources) && q.sources.length){ q.sources.forEach(s=>{ const src=document.createElement('source'); src.src=s.src; if(s.type) src.type=s.type; vid.appendChild(src); }); }
-      else if (q.video){ vid.src=q.video; } else { showToast('No video available'); return; }
-      img.style.display='none'; vid.style.display=''; vid.onloadedmetadata=()=>{ setAspectFromMedia(); vid.play().catch(()=>{}); };
+      if(!q) return;
+      isVideoPlaying = true;
+
+      // remove any transient dots/rings and hide persistent marker while playing
+      overlay.querySelectorAll('.acu-dot,.acu-ring').forEach(el=>el.remove());
+      document.getElementById('acuMarkerDot')?.remove();
+      document.getElementById('acuMarkerRing')?.remove();
+
+      hintPill.hidden=true;
+      wrap.onclick = null;                  // disable guessing during video
+      while(vid.firstChild) vid.removeChild(vid.firstChild);
+
+      if (Array.isArray(q.sources) && q.sources.length){
+        q.sources.forEach(s=>{ const src=document.createElement('source'); src.src=s.src; if(s.type) src.type=s.type; vid.appendChild(src); });
+      } else if (q.video){ vid.src=q.video; } else { showToast('No video available'); isVideoPlaying=false; wrap.onclick=onGuess; return; }
+
+      img.style.display='none';
+      vid.style.display='';
+      vid.onloadedmetadata=()=>{ setAspectFromMedia(); vid.play().catch(()=>{}); };
       vid.onended=()=>{ showToast('Video finished'); setBanner('🎬 Video complete — click Next question to continue','#93c5fd'); };
       vid.load();
     }
 
-    /* Right drawer */
+    /* ===== Right drawer ===== */
     function hideResearch(){ researchCol.innerHTML=''; researchCol.hidden=true; }
     function showLearnDrawer(q, onNext){
       researchCol.hidden=false;
